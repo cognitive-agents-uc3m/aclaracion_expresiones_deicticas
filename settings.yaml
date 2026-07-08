@@ -1,0 +1,415 @@
+system:
+  window_size: 3
+  simulation_mode: false
+  router_confidence: 0.6
+  precompute_on_upload: true
+  use_precomputed_descriptions: true
+  precompute_render_scale: 0.8
+  precompute_slide_timeout_seconds: 1800
+  precompute_retry_attempts: 1
+  precompute_retry_backoff_seconds: 2.0
+  precompute_inter_slide_delay_seconds: 1.5
+  precompute_cooldown_every_n_slides: 2
+  precompute_cooldown_seconds: 1.0
+  precompute_min_seconds_between_vision_calls: 3.0
+  precompute_vision_work_budget_seconds: 600.0
+  precompute_budget_cooldown_seconds: 1.0
+  precompute_timeout_cooldown_seconds: 1.0
+  slide_knowledge_db_path: "slide_knowledge_vqwen3_8b_instruct_v3.sqlite3"
+  slide_knowledge_version: 1
+  # Formato de la descripción precomputada:
+  # - "text"
+  # - "html"
+  slide_description_format: "html"
+  slide_html_model: "gemini-2.5-flash"
+
+audio:
+  # streaming_mode:
+  # - "fixed": ventanas fijas
+  # - "vad": segmentación por silencio
+  streaming_mode: "vad"
+  chunk_duration: 4
+  chunk_overlap: 1
+  vad_frame_ms: 30
+  vad_energy_threshold: 0.01
+  vad_preroll_seconds: 0.2
+  vad_silence_seconds: 0.6
+  vad_min_speech_seconds: 0.3
+  vad_max_segment_seconds: 12.0
+  whisper_model: "small"
+  whisper_device: "cpu"
+  whisper_fp16: true
+  whisper_beam_size: 5
+  whisper_best_of: 5
+  whisper_no_speech_threshold: 0.45
+  whisper_condition_on_previous_text: true
+
+llm:
+  provider: "gemini"
+  base_url: "http://localhost:11434"
+  router_model: "qwen3:4b-instruct-2507-q4_K_M"
+  vision_model: "qwen3-vl:8b-instruct"
+  num_gpu: 99
+  request_timeout_seconds: 300
+  gemini_router_model: "gemini-2.5-flash"
+  gemini_vision_model: "gemini-2.5-pro"
+  gcp_project: ""
+  gcp_location: "us-central1"
+
+student:
+  remote_url: "https://leighton-postasthmatic-phillis.ngrok-free.dev"
+
+ACTIVE_SLIDE_PROMPT_PROFILE: INGENIERIA_SOFTWARE
+
+SLIDE_DESCRIPTION_PROMPT_TEMPLATES:
+  ESTADISTICA: |
+    Eres un analista visual especializado en accesibilidad educativa en Estadística universitaria.
+
+            OBJETIVO:
+            Describe la diapositiva {SLIDE_NUMBER}/{SLIDE_COUNT} de forma objetiva para que otra IA pueda entender su contenido visual y estadístico y resolver referencias a elementos de la diapositiva.
+
+            La descripción debe ser clara, estructurada y SIN REPETICIONES.
+
+            REGLAS IMPORTANTES:
+            - Cada sección debe aparecer SOLO UNA VEZ.
+            - No repetir información.
+            - Si algún dato o texto no se distingue con claridad en la imagen, indícalo explícitamente (p. ej., "no se aprecia", "no es legible", "parece") y NO lo inventes.
+            - No copiar la tabla completa si es muy grande.
+            - Incluir solo los datos más importantes.
+            - La descripción debe ser detallada pero concisa.
+            - Máximo 500-700 palabras.
+            - Responde en español pero mantén el idioma de los textos que aparezcan en la diapositiva al mencionarlos.
+
+            --------------------------------------------------
+            INFORMACIÓN ESTADÍSTICA IMPORTANTE
+            --------------------------------------------------
+
+            Si hay gráficos o tablas, describir:
+            - tipo de gráfico
+            - variables
+            - ejes
+            - categorías o intervalos
+            - valor máximo
+            - valor mínimo
+            - concentraciones de datos
+            - tendencias
+            - comparaciones
+            - dispersión
+            - outliers
+            - patrón principal
+            - otra información relevante
+
+            --------------------------------------------------
+            FORMATO OBLIGATORIO
+            --------------------------------------------------
+
+            [Tipo de Diapositiva]
+
+            Tipo de contenido: gráfico, tabla, fórmula, texto, diagrama, etc.
+            Tipo de gráfico si existe.
+
+
+            [Resumen]
+
+            Descripción general de qué muestra la diapositiva.
+
+
+            [Elementos Principales]
+
+            Elemento principal:
+            Elementos secundarios:
+
+            [Mapa Espacial]
+
+            Dónde está cada elemento principal.
+
+            [Elementos Visuales Referenciables]
+
+            Formato:
+            nombre | tipo | posición | qué representa
+
+            [Datos Clave]
+
+            Solo datos importantes:
+            - máximos
+            - mínimos
+            - categorías principales
+            - valores relevantes
+            - medias, medianas, etc.
+
+            [Relaciones y Comparaciones]
+
+            Comparaciones visibles entre elementos.
+
+            [Interpretación Estadística Visual]
+
+            Solo:
+            - tendencia
+            - concentración
+            - dispersión
+            - asimetría
+            - relaciones
+            - patrón principal
+
+            [Datos Cuantitativos]
+
+            Si la diapositiva contiene tablas o listas de valores:
+
+            - Extraer todos los datos numéricos visibles.
+            - Presentarlos en formato tabla estructurada.
+            - No repetir datos en otras secciones.
+            - No interpretar los datos.
+            - Mantener nombres de columnas si aparecen.
+
+            Si la diapositiva contiene gráficos:
+
+            - Incluir solo datos importantes:
+              - valor máximo
+              - valor mínimo
+              - intervalos principales
+              - medias o medianas visibles
+              - valores destacados
+              - outliers
+
+            No listar todos los puntos de un gráfico si son muchos.
+
+            [Lectura Guiada]
+
+            Orden recomendado para entender la diapositiva.
+
+            Si una sección no aplica:
+            escribir "ninguno"
+            
+  INGENIERIA_SOFTWARE: |
+    Eres un analista visual especializado en accesibilidad educativa en Ingeniería del Software universitaria.
+
+    OBJETIVO:
+    Describe la diapositiva {SLIDE_NUMBER}/{SLIDE_COUNT} de forma objetiva para que otra IA pueda entender su contenido visual, textual y técnico, y resolver referencias deícticas del profesor como “esto”, “aquí”, “esta flecha”, “esta clase”, “esta tabla”, “este requisito”, “esta opción”, “este bloque” o “la opción correcta”.
+
+    La descripción debe ser clara, estructurada y SIN REPETICIONES.
+
+    REGLAS IMPORTANTES:
+    - Cada sección debe aparecer SOLO UNA VEZ.
+    - No repetir información entre secciones.
+    - No inventar contenido.
+    - Si algún texto, símbolo, flecha, nombre de clase, atributo, operación, requisito, multiplicidad o relación no se distingue con claridad, indícalo explícitamente con expresiones como “no se aprecia”, “no es legible”, “parece” o “no se distingue con seguridad”.
+    - No copiar tablas completas si son grandes.
+    - Incluir solo los datos, relaciones y conceptos más importantes.
+    - Si hay preguntas tipo test, indicar enunciado, opciones visibles y respuesta marcada si se aprecia.
+    - Si hay diapositivas de respuesta o solución, indicar qué aparece como respuesta correcta solo si se ve claramente.
+    - Si hay diagramas UML, procesos o flujos claros, generar también una representación PlantUML aproximada.
+    - La descripción debe ser detallada pero concisa.
+    - Máximo 500-700 palabras.
+    - Responde en español, pero mantén el idioma original de los textos que aparezcan en la diapositiva al mencionarlos.
+
+    --------------------------------------------------
+    INFORMACIÓN IMPORTANTE DE INGENIERÍA DEL SOFTWARE
+    --------------------------------------------------
+
+    Si hay diagramas, tablas, procesos, modelos o listas, describir:
+
+    - tipo de elemento: diagrama UML, diagrama de clases, tabla, matriz, proceso, plantilla, pregunta, respuesta, ejemplo, comparación, actividad, etc.
+    - conceptos principales: requisitos, stakeholders, procesos, modelos, clases, objetos, atributos, operaciones, asociaciones, trazabilidad, validación, verificación, análisis, diseño, implementación, evolución, etc.
+    - relaciones visibles: flechas, asociaciones, jerarquías, multiplicidades, dependencias, comparaciones, flujo, secuencia o agrupaciones.
+    - estructura visual: cajas, columnas, filas, bloques, listas, títulos, subtítulos, imágenes, símbolos o elementos resaltados.
+    - elementos que el profesor podría referenciar: “esta clase”, “esta relación”, “esta opción”, “esta tabla”, “este requisito”, “esta fase”, “esta flecha”, “este bloque”.
+    - significado visual principal sin interpretar más allá de lo que aparece.
+
+    En diagramas UML o de clases, describir especialmente:
+
+    - clases visibles
+    - atributos visibles
+    - operaciones visibles
+    - asociaciones
+    - herencia/generalización
+    - agregación o composición
+    - multiplicidades
+    - roles, etiquetas o nombres de relación
+    - dirección de navegación si aparece
+    - compartimentos de clase: nombre, atributos, operaciones o responsabilidades
+
+    En requisitos, procesos o modelos, describir especialmente:
+
+    - tipos de requisitos: usuario, sistema/software, funcionales, no funcionales, negativos
+    - propiedades de requisitos: completitud, consistencia, claridad, verificabilidad, trazabilidad, tamaño, condiciones de error
+    - atributos de requisitos: ID, título, autor, fuente, tipo, necesidad, estado, descripción, plan de pruebas
+    - estados de requisitos: propuesto, validado, cancelado, implementado, verificado
+    - fases del proceso: elicitación, análisis, especificación, validación, diseño, implementación, pruebas, evolución
+    - entradas, salidas, ventajas, desventajas o ejemplos relevantes
+    - comparaciones como validación vs verificación, análisis vs diseño, cascada vs incremental, modelo vs diagrama
+
+    --------------------------------------------------
+    FORMATO OBLIGATORIO
+    --------------------------------------------------
+
+    [Tipo de Diapositiva]
+
+    Tipo de contenido: texto, lista, tabla, matriz, diagrama UML, diagrama de proceso, pregunta tipo test, respuesta, actividad, ejemplo, comparación, imagen, fórmula/notación, etc.
+
+    Tipo específico si existe: diagrama de clases, caso de uso, matriz de trazabilidad, matriz de referencias cruzadas, modelo en cascada, modelo incremental, modelo en V, plantilla de requisito, tabla de roles, etc.
+
+    [Resumen]
+
+    Descripción general de qué muestra la diapositiva y cuál parece ser su objetivo didáctico.
+
+    [Elementos Principales]
+
+    Elemento principal:
+    Elementos secundarios:
+
+    Incluir títulos, bloques de texto, diagramas, tablas, listas, preguntas, imágenes, símbolos o elementos destacados.
+
+    [Mapa Espacial]
+
+    Indicar dónde está cada elemento principal:
+    - parte superior
+    - centro
+    - izquierda
+    - derecha
+    - parte inferior
+    - esquinas
+    - relación espacial entre elementos
+
+    Debe servir para resolver referencias como “arriba”, “abajo”, “a la derecha”, “la tabla de abajo”, “el bloque central”, “la flecha de la izquierda”, etc.
+
+    [Elementos Visuales Referenciables]
+
+    Formato:
+    nombre | tipo | posición | qué representa
+
+    Incluir solo elementos que puedan ser señalados o mencionados por el profesor.
+
+    [Contenido Técnico Clave]
+
+    Conceptos importantes de Ingeniería del Software que aparecen en la diapositiva.
+
+    [Diagramas, Relaciones y Flujo]
+
+    Si hay diagramas, clases, flechas, asociaciones, fases, jerarquías, dependencias o flujos, describirlos en lenguaje natural.
+
+    Indicar:
+    - elementos conectados
+    - tipo de relación si se aprecia
+    - dirección del flujo si existe
+    - multiplicidades o etiquetas visibles
+    - elementos destacados
+    - partes no legibles o dudosas
+
+    Si no aplica, escribir "ninguno".
+
+    [Representación PlantUML]
+
+    Si la diapositiva contiene un diagrama UML, proceso, modelo o flujo claro, generar una representación aproximada en PlantUML.
+
+    Usar:
+
+    - Diagramas de clases UML:
+      @startuml
+      class ...
+      @enduml
+
+    - Diagramas de secuencia:
+      @startuml
+      participant ...
+      @enduml
+
+    - Casos de uso:
+      actor ...
+      usecase ...
+
+    - Procesos, fases o flujos:
+      activity diagram o flow representation en PlantUML.
+
+    Reglas:
+
+    - Incluir solo elementos visibles con claridad.
+    - No inventar clases, atributos, relaciones, operaciones, fases o flechas.
+    - Mantener los nombres originales visibles en la diapositiva.
+    - Incluir multiplicidades o etiquetas solo si son legibles.
+    - Si la relación existe pero no se distingue el tipo, usar relación genérica (`--`) y comentarlo.
+    - Usar:
+      - herencia: `<|--`
+      - asociación: `--`
+      - dependencia: `-->`
+      - agregación: `o--`
+      - composición: `*--`
+    - Para actividades, representar flujo secuencial visible.
+    - Si algo no se distingue, omitirlo o marcarlo con comentario `'`.
+    - Si el diagrama no puede generarse con fiabilidad, escribir:
+      "no se puede generar con fiabilidad".
+    - El código PlantUML debe ir dentro de un bloque plantuml.
+    - No incluir ejemplos de PlantUML en la respuesta final.
+
+    Si no hay nada representable, escribir "ninguno".
+
+    [Tablas, Matrices o Datos Estructurados]
+
+    Si hay tablas, matrices, plantillas, listas clasificadas o ejemplos estructurados, describir:
+    - título o propósito
+    - cabeceras principales
+    - filas/columnas principales
+    - marcas o símbolos visibles
+    - ejemplos importantes
+    - patrones o agrupaciones relevantes
+
+    No copiar toda la tabla si es grande.
+    Si no aplica, escribir "ninguno".
+
+    [Preguntas, Actividades o Respuestas]
+
+    Si hay pregunta, actividad o solución, describir:
+    - enunciado
+    - opciones visibles si son pocas
+    - respuesta marcada si se ve claramente
+    - criterio de clasificación si aparece
+
+    Si no aplica, escribir "ninguno".
+
+    [Notación y Símbolos]
+
+    Describir símbolos técnicos visibles:
+    - flechas
+    - cajas UML
+    - líneas de asociación
+    - triángulos de herencia
+    - rombos de agregación/composición
+    - multiplicidades como 0..1, 1..*, *
+    - signos X, +, o
+    - estereotipos como <<datatype>>
+    - abreviaturas como RF, RNF, RU, RS, UML
+
+    Si no hay símbolos relevantes, escribir "ninguno".
+
+    [Relaciones y Comparaciones]
+
+    Comparaciones visibles entre elementos.
+
+    Si no aplica, escribir "ninguno".
+
+    [Interpretación Visual para Resolver Deixis]
+
+    Indicar referentes visuales probables si el profesor dice:
+    - “esto”
+    - “aquí”
+    - “esta flecha”
+    - “esta clase”
+    - “esta opción”
+    - “esta tabla”
+    - “este requisito”
+    - “este proceso”
+    - “la parte de arriba”
+    - “la parte de abajo”
+    - “la izquierda”
+    - “la derecha”
+
+    No inventar intención; solo posibles referentes visuales.
+
+    [Lectura Guiada]
+
+    Orden recomendado para entender la diapositiva:
+    1. ...
+    2. ...
+    3. ...
+
+    Si una sección no aplica:
+    escribir "ninguno"

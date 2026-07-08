@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cognitive Agent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .view { display: none; width: 100%; height: 100vh; }
+    .view.active { display: flex; }
+
+    #view-login {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .login-card {
+      background: rgba(255,255,255,0.97);
+      border-radius: 24px;
+      padding: 48px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .role-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px 20px;
+      border-radius: 16px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .role-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .role-btn.teacher {
+      background: linear-gradient(135deg, #312e81, #4338ca);
+      color: white;
+    }
+    .role-btn.teacher:hover { background: linear-gradient(135deg, #1e1b4b, #312e81); }
+    .role-btn.student {
+      background: white;
+      color: #312e81;
+      border-color: #c7d2fe;
+    }
+    .role-btn.student:hover { background: #eef2ff; border-color: #818cf8; }
+    .role-icon { font-size: 2.2rem; }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+      background: white;
+    }
+    .form-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #4338ca, #6366f1);
+      color: white;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #3730a3, #4f46e5); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.35); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      background: white;
+      color: #4338ca;
+      font-weight: 500;
+      font-size: 0.875rem;
+      border: 1.5px solid #c7d2fe;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-secondary:hover { background: #eef2ff; border-color: #818cf8; }
+
+    .btn-danger {
+      padding: 8px 16px;
+      background: #fef2f2;
+      color: #dc2626;
+      font-weight: 600;
+      font-size: 0.875rem;
+      border: 1.5px solid #fecaca;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-danger:hover { background: #fee2e2; border-color: #f87171; }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      font-family: inherit;
+    }
+
+    #view-teacher, #view-student {
+      flex-direction: column;
+      background: #f1f5f9;
+    }
+
+    .app-header {
+      background: linear-gradient(90deg, #1e1b4b 0%, #312e81 100%);
+      color: white;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .app-header .logo {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+    .app-header .logo span { color: #a5b4fc; }
+    .header-badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-teacher { background: rgba(165,180,252,0.25); color: #c7d2fe; }
+    .badge-student { background: rgba(110,231,183,0.2); color: #6ee7b7; }
+    .header-spacer { flex: 1; }
+    .header-status {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.6);
+      max-width: 340px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-key {
+      font-size: 0.78rem;
+      color: #a5b4fc;
+      font-weight: 500;
+    }
+
+    .dashboard-body {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .slide-panel {
+      width: 58%;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+      overflow-y: auto;
+      border-right: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+
+    .assistant-panel {
+      width: 42%;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+    }
+    .card-body { padding: 16px; }
+
+    .upload-zone {
+      border: 2px dashed #c7d2fe;
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafbff;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .upload-zone .upload-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .upload-zone .upload-text { font-size: 0.85rem; color: #64748b; font-weight: 500; }
+    .upload-zone .upload-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+    .upload-zone.has-file { border-color: #6ee7b7; background: #f0fdf4; }
+    .upload-zone.has-file .upload-text { color: #059669; }
+
+    .slide-viewer {
+      position: relative;
+      background: #0f172a;
+      border-radius: 14px;
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      width: 100%;
+      max-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    }
+    .slide-viewer img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      cursor: crosshair;
+    }
+    .slide-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,0.3);
+      user-select: none;
+    }
+    .slide-placeholder svg { width: 48px; height: 48px; opacity: 0.4; }
+    .slide-placeholder p { font-size: 0.85rem; }
+
+    .pointer-dot {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(239,68,68,0.85);
+      border: 2px solid white;
+      box-shadow: 0 0 12px rgba(239,68,68,0.6);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: left 0.08s, top 0.08s;
+      display: none;
+    }
+
+    .slide-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slide-nav .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1.5px solid #e2e8f0;
+      background: white;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #374151;
+    }
+    .slide-nav .nav-btn:hover { border-color: #6366f1; color: #4338ca; background: #eef2ff; }
+    .slide-nav .nav-btn:disabled { opacity: 0.4; cursor: default; }
+    .slide-nav .slide-label {
+      flex: 1;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #374151;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 7px 12px;
+    }
+
+    .progress-bar-track {
+      width: 100%;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #818cf8);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .description-box {
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      padding: 14px;
+      font-size: 0.85rem;
+      color: #374151;
+      line-height: 1.65;
+      min-height: 80px;
+      max-height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .description-box.empty { color: #94a3b8; font-style: italic; }
+
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 4px 2px;
+      min-height: 0;
+    }
+    .message {
+      display: flex;
+      gap: 10px;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    .msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+    .msg-avatar.assistant { background: #ede9fe; color: #6d28d9; }
+    .msg-avatar.user { background: #dbeafe; color: #1d4ed8; }
+
+    .msg-bubble {
+      max-width: calc(100% - 44px);
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .msg-bubble.assistant {
+      background: #faf5ff;
+      border: 1px solid #ede9fe;
+      color: #1e1b4b;
+      border-radius: 4px 14px 14px 14px;
+    }
+    .msg-bubble.user {
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      color: #1e3a8a;
+      border-radius: 14px 4px 14px 14px;
+    }
+    .msg-bubble.transcribed {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #14532d;
+      font-style: italic;
+    }
+
+    .empty-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 20px;
+    }
+    .empty-chat svg { width: 40px; height: 40px; opacity: 0.3; }
+
+    .input-area {
+      border-top: 1px solid #f1f5f9;
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .text-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .chat-textarea {
+      flex: 1;
+      min-height: 44px;
+      max-height: 120px;
+      padding: 10px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      line-height: 1.5;
+    }
+    .chat-textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .chat-textarea::placeholder { color: #94a3b8; }
+
+    .send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #4338ca, #6366f1);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .send-btn:hover { background: linear-gradient(135deg, #3730a3, #4f46e5); transform: scale(1.05); }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .rec-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .rec-btn.idle {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1.5px solid #e2e8f0;
+    }
+    .rec-btn.idle:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+    .rec-btn.recording {
+      background: #dc2626;
+      color: white;
+    }
+    .rec-btn.recording:hover { background: #b91c1c; }
+
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .rec-btn.recording .rec-dot {
+      animation: pulse-red 1s ease-in-out infinite;
+    }
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .auto-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .auto-btn.off {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1.5px solid #e2e8f0;
+    }
+    .auto-btn.off:hover { background: #ecfdf5; color: #059669; border-color: #6ee7b7; }
+    .auto-btn.on {
+      background: #059669;
+      color: white;
+      border: 1.5px solid transparent;
+    }
+    .auto-btn.on:hover { background: #047857; }
+
+    .status-bar {
+      height: 32px;
+      background: white;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      color: #64748b;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+    .status-dot.green { background: #10b981; }
+    .status-dot.amber { background: #f59e0b; }
+    .status-dot.blue { background: #3b82f6; }
+
+    .styled-select {
+      padding: 7px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      color: #374151;
+      background: white;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .styled-select:focus { border-color: #6366f1; }
+
+    .prompt-drawer {
+      position: fixed;
+      top: 60px;
+      right: 0;
+      width: 420px;
+      max-width: 90vw;
+      height: calc(100vh - 60px);
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      box-shadow: -8px 0 32px rgba(0,0,0,0.12);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    }
+    .prompt-drawer.open { transform: translateX(0); }
+    .prompt-drawer-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: #f8fafc;
+    }
+    .prompt-drawer-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #475569;
+    }
+    .prompt-drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .prompt-drawer-body pre {
+      font-family: 'Inter', monospace;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      color: #1e293b;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+    .prompt-drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.18);
+      z-index: 999;
+      display: none;
+    }
+    .prompt-drawer-overlay.open { display: block; }
+
+    #toast-container {
+      position: fixed;
+      bottom: 48px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: white;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      animation: slideIn 0.2s ease;
+      max-width: 320px;
+    }
+    .toast.success { background: #059669; }
+    .toast.error { background: #dc2626; }
+    .toast.info { background: #4338ca; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+
+    .accordion-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .accordion-toggle:hover { background: #f1f5f9; }
+    .accordion-toggle .chevron { transition: transform 0.2s; }
+    .accordion-toggle.open .chevron { transform: rotate(180deg); }
+    .accordion-body { display: none; }
+    .accordion-body.open { display: block; }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .spinner.visible { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .chip.indigo { background: #e0e7ff; color: #4338ca; }
+    .chip.green { background: #d1fae5; color: #059669; }
+    .chip.red { background: #fee2e2; color: #dc2626; }
+    .chip.amber { background: #fef3c7; color: #d97706; }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+
+    .panel-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #374151;
+    }
+    .panel-section-title svg { color: #6366f1; }
+
+    .divider { height: 1px; background: #f1f5f9; margin: 4px 0; }
+
+    .slide-panel {
+      transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .slide-panel.expanded {
+      width: 100% !important;
+      border-right: none;
+    }
+    .assistant-panel {
+      transition: width 0.3s cubic-bezier(0.4,0,0.2,1), padding 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .assistant-panel.collapsed {
+      width: 0 !important;
+      min-width: 0 !important;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+    .toggle-panel-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      background: #f1f5f9;
+      border: 1.5px solid #e2e8f0;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .toggle-panel-btn:hover {
+      background: #eef2ff;
+      border-color: #818cf8;
+      color: #4338ca;
+    }
+    .reopen-assistant-strip {
+      display: none;
+      width: 32px;
+      flex-shrink: 0;
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 14px;
+    }
+    .reopen-assistant-strip.visible {
+      display: flex;
+    }
+    .reopen-assistant-strip button {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      padding: 10px 6px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .reopen-assistant-strip button:hover {
+      background: #eef2ff;
+      color: #4338ca;
+      border-color: #818cf8;
+    }
+
+    .class-finished-banner {
+      display: none;
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: white;
+      border-radius: 12px;
+      padding: 14px 18px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .class-finished-banner a {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 6px 16px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .class-finished-banner a:hover { background: rgba(255,255,255,0.35); }
+  </style>
+</head>
+<body>
+
+<div id="view-teacher" class="view active" style="flex-direction:column;">
+
+  <header class="app-header">
+    <span class="logo">Cognitive <span>Agent</span></span>
+    <span class="header-spacer"></span>
+    <span class="header-key" id="header-session-key"></span>
+    <select class="styled-select" id="prompt-profile-select" onchange="changePromptProfile(this.value)" style="background:rgba(255,255,255,0.08);color:#c7d2fe;border-color:rgba(255,255,255,0.15);font-size:0.78rem;padding:5px 10px;"></select>
+    <button onclick="openPromptDrawer()" title="Ver prompt" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#c7d2fe;width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </header>
+
+  <div class="dashboard-body">
+
+    <div class="slide-panel">
+
+      <div>
+        <p class="section-label">Presentación</p>
+        <div class="upload-zone" id="upload-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+          <input type="file" accept=".pdf" id="pdf-input" onchange="uploadPDF(this.files[0])">
+          <p class="upload-text" id="upload-text">Arrastra tu PDF aquí o haz click</p>
+          <p class="upload-hint">Solo archivos PDF</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="slide-viewer" id="slide-viewer">
+          <img id="slide-img" style="display:none;" alt="Diapositiva actual">
+          <div class="slide-placeholder" id="slide-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            <p>Sin presentación</p>
+          </div>
+          <div class="pointer-dot" id="pointer-dot"></div>
+        </div>
+
+        <div class="slide-nav" style="margin-top:10px;">
+          <button class="nav-btn" id="btn-prev" onclick="slidePrev()" title="Anterior (←)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <span class="slide-label" id="slide-label">Sin PDF</span>
+          <button class="nav-btn" id="btn-next" onclick="slideNext()" title="Siguiente (→)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p class="section-label">Descripción de la diapositiva</p>
+        <div class="description-box empty" id="slide-description">Sin descripción precomputada.</div>
+      </div>
+
+      <div>
+        <div class="accordion-toggle" id="precompute-toggle" onclick="toggleAccordion('precompute')">
+          <span>Preprocesado de diapositivas</span>
+          <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="accordion-body" id="precompute-body" style="margin-top:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <div class="progress-bar-track" style="flex:1;"><div class="progress-bar-fill" id="precompute-bar" style="width:0%"></div></div>
+            <span id="precompute-pct" style="font-size:0.75rem;color:#64748b;font-weight:600;white-space:nowrap;">0%</span>
+          </div>
+          <p id="precompute-status-text" style="font-size:0.78rem;color:#64748b;margin-bottom:10px;"></p>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-secondary" style="flex:1;" onclick="precomputeAll()">Preprocesar todo</button>
+            <button class="btn-secondary" style="flex:1;" onclick="precomputeRetry()">Reintentar errores</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;padding-top:4px;">
+        <div id="class-status-text" style="flex:1;font-size:0.8rem;color:#64748b;">Clase en curso.</div>
+        <button class="btn-danger" onclick="finishClass()">Finalizar clase</button>
+      </div>
+
+      <div class="class-finished-banner" id="class-finished-banner">
+        Clase finalizada. PDF con notas listo.
+        <br>
+        <a href="#" id="download-pdf-link">Descargar PDF con notas</a>
+      </div>
+
+    </div>
+
+    <div class="assistant-panel" id="assistant-panel">
+
+      <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+        <p class="section-label" style="margin-bottom:0;">Asistente cognitivo</p>
+        <button class="toggle-panel-btn" id="toggle-assistant-btn" onclick="toggleAssistantPanel()" title="Ocultar asistente">
+          <svg id="toggle-assistant-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="messages-area" id="messages-area">
+        <div class="empty-chat" id="empty-chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <p>Las respuestas del asistente aparecen aqui.</p>
+          <p style="color:#cbd5e1;font-size:0.78rem;">Habla o escribe para activar el asistente.</p>
+        </div>
+      </div>
+
+      <div id="transcription-indicator" style="display:none;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:0.78rem;color:#166534;">
+        <span style="font-weight:600;">Transcrito:</span> <span id="transcription-text"></span>
+      </div>
+
+      <div class="input-area">
+        <div class="text-input-row">
+          <textarea class="chat-textarea" id="chat-input" placeholder="Escribe aquí..." rows="2"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText();}"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendText()" title="Enviar (Enter)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+
+        <div class="controls-row">
+          <button class="rec-btn idle" id="rec-btn" onclick="toggleRecording()">
+            <span class="rec-dot"></span>
+            <span id="rec-btn-text">Grabar clip</span>
+          </button>
+          <button class="auto-btn off" id="auto-btn" onclick="toggleAuto()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <span id="auto-btn-text">Auto</span>
+          </button>
+          <div style="flex:1;"></div>
+          <span id="auto-status" style="font-size:0.72rem;color:#94a3b8;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="reopen-assistant-strip" id="reopen-assistant-strip">
+      <button onclick="toggleAssistantPanel()" title="Mostrar asistente">Asistente ›</button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-item">
+      <div class="status-dot green" id="conn-dot"></div>
+      <span id="conn-label">Conectado</span>
+    </div>
+    <div class="status-item">
+      <div class="status-dot blue"></div>
+      <span id="shared-status-label" style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    </div>
+  </div>
+</div>
+
+<div id="view-student" class="view" style="flex-direction:column;">
+
+  <header class="app-header">
+    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="logo">Cognitive <span>Agent</span></span>
+    <span class="header-badge badge-student">Alumno</span>
+    <span class="header-spacer"></span>
+    <span class="header-status" id="student-header-status">Sincronizando...</span>
+    <button id="student-audio-btn" onclick="unlockTTS()" style="background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.4);color:#fde68a;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:0.78rem;font-family:inherit;font-weight:600;">🔇 Activar audio</button>
+    <button onclick="logout()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:0.78rem;font-family:inherit;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">Salir</button>
+  </header>
+
+  <div class="dashboard-body">
+
+    <div class="slide-panel">
+      <div>
+        <p class="section-label">Diapositiva del profesor</p>
+        <div class="slide-viewer">
+          <img id="student-slide-img" style="display:none;" alt="Diapositiva">
+          <div class="slide-placeholder" id="student-slide-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            <p>Esperando presentación...</p>
+          </div>
+        </div>
+        <div style="margin-top:10px;text-align:center;">
+          <span class="slide-label" id="student-slide-label">Sin PDF</span>
+        </div>
+      </div>
+
+      <div>
+        <p class="section-label">Descripción de la diapositiva</p>
+        <div class="description-box empty" id="student-description">Sin descripción disponible.</div>
+      </div>
+
+      <div class="class-finished-banner" id="student-class-finished-banner">
+        La clase ha finalizado. El PDF con notas está disponible.
+        <br>
+        <a href="#" id="student-download-link">Descargar PDF con notas</a>
+      </div>
+    </div>
+
+    <div class="assistant-panel">
+      <div style="flex-shrink:0;">
+        <p class="section-label">Tu asistente</p>
+      </div>
+
+      <div class="messages-area" id="student-messages-area">
+        <div class="empty-chat" id="student-empty-chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <p>Las respuestas del asistente aparecen aquí.</p>
+          <p style="color:#cbd5e1;font-size:0.78rem;">Escribe o habla para hacer una pregunta.</p>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="text-input-row">
+          <textarea class="chat-textarea" id="student-chat-input" placeholder="Escribe tu pregunta..." rows="2"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();studentSendText();}"></textarea>
+          <button class="send-btn" style="background:linear-gradient(135deg,#047857,#10b981);" onclick="studentSendText()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+        <div class="controls-row">
+          <button class="rec-btn idle" id="student-rec-btn" onclick="studentToggleRecording()">
+            <span class="rec-dot"></span>
+            <span id="student-rec-btn-text">Grabar clip</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-item">
+      <div class="status-dot green" id="student-conn-dot"></div>
+      <span id="student-conn-label">Sincronizado</span>
+    </div>
+    <div class="status-item">
+      <div class="status-dot blue"></div>
+      <span id="student-shared-status" style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<div id="prompt-drawer-overlay" class="prompt-drawer-overlay" onclick="closePromptDrawer()"></div>
+<div id="prompt-drawer" class="prompt-drawer">
+  <div class="prompt-drawer-header">
+    <span class="prompt-drawer-title" id="prompt-drawer-title">Prompt</span>
+    <button onclick="closePromptDrawer()" style="background:none;border:none;cursor:pointer;color:#64748b;display:flex;align-items:center;padding:4px;" title="Cerrar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="prompt-drawer-body">
+    <pre id="prompt-drawer-content">Cargando...</pre>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const App = {
+  role: null,
+  studentKey: '',
+  sessionKey: '',
+  slideToken: null,
+  autoMode: false,
+  isRecording: false,
+  mediaRecorder: null,
+  audioStream: null,
+  autoIntervalId: null,
+  pollIntervalId: null,
+  currentSlideLabel: 'Sin PDF',
+  classFinished: false,
+  finalPdfToken: null,
+  lastTtsPayload: null,
+  ttsUnlocked: false,
+  ttsPending: null,
+  studentSlideToken: null,
+};
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function api(method, path, body) {
+  const opts = { method, credentials: 'include' };
+  if (body instanceof FormData) {
+    opts.body = body;
+  } else if (body && typeof body === 'object') {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+function formBody(obj) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(obj)) fd.append(k, v);
+  return fd;
+}
+
+function toast(msg, type = 'info', duration = 3000) {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+async function autoInit() {
+  App.role = 'teacher';
+  await loadPromptProfiles();
+  startTeacherPolling();
+  setupKeyboardShortcuts();
+}
+
+async function loadPromptProfiles() {
+  try {
+    const data = await api('GET', '/ui/prompts');
+    const sel = document.getElementById('prompt-profile-select');
+    sel.innerHTML = '';
+    for (const p of data.profiles) {
+      const opt = document.createElement('option');
+      opt.value = p.value;
+      opt.textContent = p.label;
+      if (p.value === data.active) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  } catch (_) {}
+}
+
+async function changePromptProfile(val) {
+  try {
+    await api('POST', '/ui/teacher/prompt-profile', formBody({ profile: val }));
+    toast('Perfil actualizado', 'success', 1500);
+    if (document.getElementById('prompt-drawer').classList.contains('open')) {
+      loadPromptDrawerContent(val);
+    }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function openPromptDrawer() {
+  const profile = document.getElementById('prompt-profile-select').value;
+  document.getElementById('prompt-drawer').classList.add('open');
+  document.getElementById('prompt-drawer-overlay').classList.add('open');
+  await loadPromptDrawerContent(profile);
+}
+
+function closePromptDrawer() {
+  document.getElementById('prompt-drawer').classList.remove('open');
+  document.getElementById('prompt-drawer-overlay').classList.remove('open');
+}
+
+async function loadPromptDrawerContent(profile) {
+  const titleEl = document.getElementById('prompt-drawer-title');
+  const contentEl = document.getElementById('prompt-drawer-content');
+  titleEl.textContent = profile || 'Prompt';
+  contentEl.textContent = 'Cargando...';
+  try {
+    const data = await api('GET', `/ui/prompt-text?profile=${encodeURIComponent(profile)}`);
+    contentEl.textContent = data.text || '(vacío)';
+  } catch (e) {
+    contentEl.textContent = 'No se pudo cargar el prompt.';
+  }
+}
+
+function onDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+function onDragLeave(e) { document.getElementById('upload-zone').classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') uploadPDF(file);
+  else toast('Solo se aceptan archivos PDF', 'error');
+}
+
+async function uploadPDF(file) {
+  if (!file) return;
+  const zone = document.getElementById('upload-zone');
+  const uploadText = document.getElementById('upload-text');
+  uploadText.textContent = 'Subiendo...';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const data = await api('POST', '/ui/teacher/pdf', fd);
+    zone.classList.add('has-file');
+    uploadText.textContent = file.name;
+    document.getElementById('slide-label').textContent = data.slide_label;
+    App.currentSlideLabel = data.slide_label;
+    updatePrecomputeUI(data.precompute_status, data.precompute_progress);
+    refreshSlideImage();
+    toast('PDF cargado correctamente', 'success');
+  } catch (e) {
+    uploadText.textContent = 'Error al subir el PDF';
+    toast(e.message, 'error');
+  }
+}
+
+async function slidePrev() {
+  try {
+    const data = await api('POST', '/ui/teacher/slides/prev');
+    document.getElementById('slide-label').textContent = data.slide_label;
+    App.currentSlideLabel = data.slide_label;
+    refreshSlideImage();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function slideNext() {
+  try {
+    const data = await api('POST', '/ui/teacher/slides/next');
+    document.getElementById('slide-label').textContent = data.slide_label;
+    App.currentSlideLabel = data.slide_label;
+    refreshSlideImage();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function refreshSlideImage() {
+  const img = document.getElementById('slide-img');
+  const placeholder = document.getElementById('slide-placeholder');
+  const token = Date.now();
+  App.slideToken = token;
+  const newSrc = `/ui/teacher/slides/image?t=${token}`;
+  const tmp = new Image();
+  tmp.onload = () => {
+    img.src = newSrc;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+  tmp.onerror = () => {
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+  };
+  tmp.src = newSrc;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const viewer = document.getElementById('slide-viewer');
+  if (viewer) {
+    viewer.addEventListener('mousemove', throttle((e) => {
+      const img = document.getElementById('slide-img');
+      if (!img || img.style.display === 'none') return;
+      const rect = img.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      if (x < 0 || x > 1 || y < 0 || y > 1) return;
+      api('POST', '/ui/teacher/pointer', { x, y, ts: Date.now() }).catch(() => {});
+    }, 120));
+
+    viewer.addEventListener('click', (e) => {
+      const img = document.getElementById('slide-img');
+      if (!img || img.style.display === 'none') return;
+      const rect = img.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      if (x < 0 || x > 1 || y < 0 || y > 1) return;
+      api('POST', '/ui/teacher/pointer', { x, y, ts: Date.now(), click: 1 }).catch(() => {});
+    });
+  }
+});
+
+function throttle(fn, ms) {
+  let last = 0;
+  return function(...args) {
+    const now = Date.now();
+    if (now - last < ms) return;
+    last = now;
+    return fn.apply(this, args);
+  };
+}
+
+async function sendText() {
+  const ta = document.getElementById('chat-input');
+  const text = ta.value.trim();
+  if (!text) return;
+  ta.value = '';
+  addMessage('user', text);
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  try {
+    const data = await api('POST', '/ui/teacher/send', formBody({ text }));
+    if (data.description) {
+      addMessage('assistant', data.description);
+      lastAgentResponse = data.description;
+    }
+  } catch (e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
+}
+
+function _doSpeak(text) {
+  if (!text || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'es-ES';
+  window.speechSynthesis.speak(utter);
+}
+
+function speakTTS(payload) {
+  if (!payload || payload === App.lastTtsPayload) return;
+  App.lastTtsPayload = payload;
+  const sep = payload.indexOf('|');
+  const text = (sep >= 0 ? payload.slice(sep + 1) : payload).trim();
+  if (!text) return;
+  if (App.ttsUnlocked) {
+    _doSpeak(text);
+  } else {
+    App.ttsPending = text;
+  }
+}
+
+function unlockTTS() {
+  if (App.ttsUnlocked) return;
+  App.ttsUnlocked = true;
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  }
+  const btn = document.getElementById('student-audio-btn');
+  if (btn) {
+    btn.textContent = '🔊 Audio activo';
+    btn.style.background = 'rgba(110,231,183,0.2)';
+    btn.style.borderColor = 'rgba(110,231,183,0.4)';
+    btn.style.color = '#6ee7b7';
+    btn.disabled = true;
+  }
+  if (App.ttsPending) {
+    const t = App.ttsPending;
+    App.ttsPending = null;
+    setTimeout(() => _doSpeak(t), 150);
+  }
+}
+
+let _beepCtx = null;
+
+function _initBeepCtx() {
+  if (!_beepCtx) {
+    try { _beepCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) {}
+  }
+  if (_beepCtx && _beepCtx.state === 'suspended') {
+    _beepCtx.resume().catch(() => {});
+  }
+  unlockTTS();
+}
+
+document.addEventListener('click',   _initBeepCtx, true);
+document.addEventListener('keydown', _initBeepCtx, true);
+
+function _doBeep() {
+  try {
+    const osc  = _beepCtx.createOscillator();
+    const gain = _beepCtx.createGain();
+    osc.connect(gain);
+    gain.connect(_beepCtx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.25, _beepCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, _beepCtx.currentTime + 0.18);
+    osc.start(_beepCtx.currentTime);
+    osc.stop(_beepCtx.currentTime + 0.18);
+  } catch(e) {}
+}
+
+function playBeep() {
+  if (!_beepCtx) return;
+  if (_beepCtx.state === 'running') {
+    _doBeep();
+  } else {
+    _beepCtx.resume().then(_doBeep).catch(() => {});
+  }
+}
+
+function addMessage(role, text, extra = '') {
+  const area = document.getElementById('messages-area');
+  const empty = document.getElementById('empty-chat');
+  if (empty) empty.style.display = 'none';
+
+  const msg = document.createElement('div');
+  msg.className = 'message';
+
+  const avatar = document.createElement('div');
+  avatar.className = `msg-avatar ${role}`;
+  avatar.textContent = role === 'assistant' ? 'IA' : 'Tu';
+
+  const bubble = document.createElement('div');
+  bubble.className = `msg-bubble ${role} ${extra}`;
+  bubble.textContent = text;
+
+  if (role === 'assistant') {
+    msg.appendChild(avatar);
+    msg.appendChild(bubble);
+  } else {
+    msg.appendChild(bubble);
+    msg.appendChild(avatar);
+  }
+
+  area.appendChild(msg);
+  area.scrollTop = area.scrollHeight;
+}
+
+function addStudentMessage(role, text) {
+  const area = document.getElementById('student-messages-area');
+  const empty = document.getElementById('student-empty-chat');
+  if (empty) empty.style.display = 'none';
+
+  const msg = document.createElement('div');
+  msg.className = 'message';
+
+  const avatar = document.createElement('div');
+  avatar.className = `msg-avatar ${role}`;
+  avatar.textContent = role === 'assistant' ? 'IA' : 'Tu';
+
+  const bubble = document.createElement('div');
+  bubble.className = `msg-bubble ${role}`;
+  bubble.textContent = text;
+
+  if (role === 'assistant') {
+    msg.appendChild(avatar);
+    msg.appendChild(bubble);
+  } else {
+    msg.appendChild(bubble);
+    msg.appendChild(avatar);
+  }
+
+  area.appendChild(msg);
+  area.scrollTop = area.scrollHeight;
+}
+
+function clearMessages() {
+  const area = document.getElementById('messages-area');
+  if (!area) return;
+  area.innerHTML = '<div class="empty-chat" id="empty-chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>Las respuestas del asistente aparecen aqui.</p><p style="color:#cbd5e1;font-size:0.78rem;">Habla o escribe para activar el asistente.</p></div>';
+}
+
+function clearStudentMessages() {
+  const area = document.getElementById('student-messages-area');
+  if (!area) return;
+  area.innerHTML = '<div class="empty-chat" id="student-empty-chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>Las respuestas del asistente aparecen aqui.</p><p style="color:#cbd5e1;font-size:0.78rem;">Escribe o habla para hacer una pregunta.</p></div>';
+}
+
+async function toggleRecording() {
+  if (App.isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    App.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    App.mediaRecorder = new MediaRecorder(App.audioStream);
+    const chunks = [];
+    App.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    App.mediaRecorder.onstop = async () => {
+      if (chunks.length === 0) return;
+      const blob = new Blob(chunks, { type: App.mediaRecorder.mimeType || 'audio/webm' });
+      await sendAudioBlob(blob);
+    };
+    App.mediaRecorder.start();
+    App.isRecording = true;
+    const btn = document.getElementById('rec-btn');
+    btn.classList.replace('idle', 'recording');
+    document.getElementById('rec-btn-text').textContent = 'Detener';
+  } catch (e) {
+    toast('No se pudo acceder al microfono: ' + e.message, 'error');
+  }
+}
+
+function stopRecording() {
+  if (App.mediaRecorder && App.isRecording) {
+    App.mediaRecorder.stop();
+  }
+  if (App.audioStream) {
+    App.audioStream.getTracks().forEach(t => t.stop());
+    App.audioStream = null;
+  }
+  App.isRecording = false;
+  const btn = document.getElementById('rec-btn');
+  btn.classList.replace('recording', 'idle');
+  document.getElementById('rec-btn-text').textContent = 'Grabar clip';
+}
+
+async function sendAudioBlob(blob) {
+  const fd = new FormData();
+  fd.append('file', blob, 'audio.webm');
+  try {
+    const data = await api('POST', '/ui/teacher/audio', fd);
+    if (data.error) toast(data.error, 'error', 6000);
+    if (data.transcribed) {
+      addMessage('user', data.transcribed, 'transcribed');
+      toast(`Transcrito: "${data.transcribed.slice(0, 60)}..."`, 'info', 2500);
+    }
+    if (data.description) {
+      addMessage('assistant', data.description);
+      lastAgentResponse = data.description;
+    }
+  } catch (e) {
+    toast('Error al transcribir: ' + e.message, 'error');
+  }
+}
+
+async function toggleAuto() {
+  if (App.autoMode) {
+    await stopAutoMode();
+  } else {
+    await startAutoMode();
+  }
+}
+
+async function startAutoMode() {
+  try {
+    App.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    await api('POST', '/ui/teacher/auto/start');
+    App.autoMode = true;
+
+    const btn = document.getElementById('auto-btn');
+    btn.classList.replace('off', 'on');
+    document.getElementById('auto-btn-text').textContent = 'Auto ON';
+    document.getElementById('auto-status').textContent = 'Calibrando ruido ambiente...';
+
+    const cfg = await fetchVadConfig();
+    startVadLoop(cfg);
+    toast('Modo automatico activado (deteccion de frases por silencio)', 'success', 2000);
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function stopAutoMode() {
+  App.autoMode = false;
+  stopVadLoop();
+  if (App.audioStream) {
+    App.audioStream.getTracks().forEach(t => t.stop());
+    App.audioStream = null;
+  }
+  try { await api('POST', '/ui/teacher/auto/stop'); } catch (_) {}
+  const btn = document.getElementById('auto-btn');
+  btn.classList.replace('on', 'off');
+  document.getElementById('auto-btn-text').textContent = 'Auto';
+  document.getElementById('auto-status').textContent = '';
+  toast('Modo automatico detenido', 'info', 1500);
+}
+
+
+const VAD_DEFAULTS = {
+  vad_energy_threshold: 0.01,
+  vad_preroll_seconds: 0.2,
+  vad_silence_seconds: 0.6,
+  vad_min_speech_seconds: 0.3,
+  vad_max_segment_seconds: 12.0,
+};
+
+let vadCtx = null;
+let vadSource = null;
+let vadNode = null;
+
+async function fetchVadConfig() {
+  try {
+    const cfg = await api('GET', '/ui/config/audio');
+    return Object.assign({}, VAD_DEFAULTS, cfg || {});
+  } catch (_) {
+    return Object.assign({}, VAD_DEFAULTS);
+  }
+}
+
+function encodeWav(samples, sampleRate) {
+  const n = samples.length;
+  const buffer = new ArrayBuffer(44 + n * 2);
+  const view = new DataView(buffer);
+  const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); view.setUint32(4, 36 + n * 2, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  writeStr(36, 'data'); view.setUint32(40, n * 2, true);
+  let off = 44;
+  for (let i = 0; i < n; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    off += 2;
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function startVadLoop(cfg) {
+  vadCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const sampleRate = vadCtx.sampleRate;
+  vadSource = vadCtx.createMediaStreamSource(App.audioStream);
+  vadNode = vadCtx.createScriptProcessor(2048, 1, 1);
+
+  const prerollTarget = Math.round(cfg.vad_preroll_seconds * sampleRate);
+  const maxSegmentSamples = Math.round(cfg.vad_max_segment_seconds * sampleRate);
+  const minSpeechSamples = Math.round(cfg.vad_min_speech_seconds * sampleRate);
+
+  let preroll = [];
+  let prerollLen = 0;
+  let speech = [];
+  let speechLen = 0;
+  let inSpeech = false;
+  let silenceSec = 0;
+
+  let calibFrames = Math.ceil(0.8 * sampleRate / 2048);
+  let calibAcc = 0, calibN = 0;
+  let threshold = cfg.vad_energy_threshold;
+
+  const pushPreroll = (frame) => {
+    preroll.push(frame); prerollLen += frame.length;
+    while (prerollLen > prerollTarget && preroll.length > 1) {
+      prerollLen -= preroll[0].length;
+      preroll.shift();
+    }
+  };
+
+  const flushSegment = () => {
+    if (speechLen === 0) return;
+    const seg = new Float32Array(speechLen);
+    let o = 0;
+    for (const f of speech) { seg.set(f, o); o += f.length; }
+    speech = []; speechLen = 0;
+    if (seg.length < minSpeechSamples) return;
+    sendVadSegment(seg, sampleRate);
+  };
+
+  vadNode.onaudioprocess = (ev) => {
+    if (!App.autoMode) return;
+    const frame = new Float32Array(ev.inputBuffer.getChannelData(0));
+    const frameSec = frame.length / sampleRate;
+    let sum = 0;
+    for (let i = 0; i < frame.length; i++) sum += frame[i] * frame[i];
+    const rms = Math.sqrt(sum / frame.length);
+
+    if (calibFrames > 0) {
+      calibFrames--; calibAcc += rms; calibN++;
+      pushPreroll(frame);
+      if (calibFrames === 0 && calibN > 0) {
+        threshold = Math.max(cfg.vad_energy_threshold, (calibAcc / calibN) * 2.5);
+        document.getElementById('auto-status').textContent = 'Escuchando...';
+      }
+      return;
+    }
+
+    const voiced = rms >= threshold;
+    if (voiced) {
+      if (!inSpeech) {
+        inSpeech = true;
+        silenceSec = 0;
+        speech = preroll.slice();
+        speechLen = prerollLen;
+        document.getElementById('auto-status').textContent = 'Voz detectada...';
+      }
+      speech.push(frame); speechLen += frame.length;
+      silenceSec = 0;
+    } else if (inSpeech) {
+      speech.push(frame); speechLen += frame.length;
+      silenceSec += frameSec;
+      if (silenceSec >= cfg.vad_silence_seconds) {
+        inSpeech = false;
+        silenceSec = 0;
+        flushSegment();
+      }
+    }
+
+    if (inSpeech && speechLen >= maxSegmentSamples) {
+      flushSegment();
+    }
+
+    pushPreroll(frame);
+  };
+
+  vadSource.connect(vadNode);
+  const mute = vadCtx.createGain();
+  mute.gain.value = 0;
+  vadNode.connect(mute);
+  mute.connect(vadCtx.destination);
+}
+
+function stopVadLoop() {
+  try { if (vadNode) vadNode.disconnect(); } catch (_) {}
+  try { if (vadSource) vadSource.disconnect(); } catch (_) {}
+  try { if (vadCtx) vadCtx.close(); } catch (_) {}
+  vadNode = null; vadSource = null; vadCtx = null;
+}
+
+async function sendVadSegment(samples, sampleRate) {
+  const fd = new FormData();
+  fd.append('file', encodeWav(samples, sampleRate), 'segment.wav');
+  try {
+    await api('POST', '/ui/teacher/audio/stream', fd);
+    document.getElementById('auto-status').textContent = 'Frase enviada. Transcribiendo...';
+  } catch (_) {
+    document.getElementById('auto-status').textContent = 'Error enviando audio';
+  }
+}
+
+let lastAgentResponse = '';
+let lastSlideLabel = '';
+let lastTranscribedShown = '';
+
+function startTeacherPolling() {
+  App.pollIntervalId = setInterval(pollTeacherState, 1200);
+}
+
+async function pollTeacherState() {
+  try {
+    const data = await api('GET', '/ui/teacher/state');
+
+    document.getElementById('shared-status-label').textContent = data.shared_status || '';
+
+    if (data.slide_label && data.slide_label !== lastSlideLabel) {
+      lastSlideLabel = data.slide_label;
+      document.getElementById('slide-label').textContent = data.slide_label;
+      if (data.slide_label !== 'Sin PDF') refreshSlideImage();
+    }
+
+    const descEl = document.getElementById('slide-description');
+    if (data.description && data.description !== descEl.textContent) {
+      descEl.textContent = data.description;
+      descEl.classList.remove('empty');
+    }
+
+    if (data.agent_response && data.agent_response !== lastAgentResponse) {
+      lastAgentResponse = data.agent_response;
+      addMessage('assistant', data.agent_response);
+    }
+
+    updatePrecomputeUI(data.precompute_status, data.precompute_progress);
+
+    if (data.last_transcribed && App.autoMode) {
+      document.getElementById('transcription-indicator').style.display = 'block';
+      document.getElementById('transcription-text').textContent = data.last_transcribed;
+      if (data.last_transcribed !== lastTranscribedShown) {
+        lastTranscribedShown = data.last_transcribed;
+        addMessage('user', data.last_transcribed, 'transcribed');
+        document.getElementById('auto-status').textContent = 'Escuchando...';
+      }
+    }
+
+    if (data.tts_payload) speakTTS(data.tts_payload);
+
+    if (data.class_finished && !App.classFinished) {
+      App.classFinished = true;
+      document.getElementById('class-finished-banner').style.display = 'block';
+      document.getElementById('class-status-text').textContent = 'Clase finalizada.';
+    }
+
+    document.getElementById('conn-dot').className = 'status-dot green';
+    document.getElementById('conn-label').textContent = 'Conectado';
+  } catch (_) {
+    document.getElementById('conn-dot').className = 'status-dot';
+    document.getElementById('conn-label').textContent = 'Sin conexion';
+  }
+}
+
+let studentLastSlideLabel = '';
+let studentLastDesc = '';
+let studentLastClarificationSeq = 0;
+let studentFinalToken = null;
+
+function startStudentPolling() {
+  App.pollIntervalId = setInterval(pollStudentState, 1200);
+}
+
+async function pollStudentState() {
+  try {
+    const data = await api('GET', `/ui/student/state?key=${encodeURIComponent(App.studentKey)}`);
+
+    document.getElementById('student-header-status').textContent = data.shared_status || '';
+    document.getElementById('student-shared-status').textContent = data.shared_status || '';
+
+    const lbl = data.slide_label || 'Sin PDF';
+    if (lbl !== studentLastSlideLabel) {
+      studentLastSlideLabel = lbl;
+      document.getElementById('student-slide-label').textContent = lbl;
+      if (lbl !== 'Sin PDF') refreshStudentSlideImage();
+    }
+
+    if (data.description && data.description !== studentLastDesc) {
+      studentLastDesc = data.description;
+      const el = document.getElementById('student-description');
+      el.textContent = data.description;
+      el.classList.remove('empty');
+    }
+
+    if (data.clarification_seq && data.clarification_seq !== studentLastClarificationSeq) {
+      studentLastClarificationSeq = data.clarification_seq;
+      if (data.clarification) {
+        addStudentMessage('assistant', data.clarification);
+        const descEl = document.getElementById('student-description');
+        descEl.textContent = data.clarification;
+        descEl.classList.remove('empty');
+        studentLastDesc = data.clarification;
+        playBeep();
+        speakTTS(data.clarification);
+      }
+    }
+
+    if (data.class_finished && !App.classFinished) {
+      App.classFinished = true;
+      document.getElementById('student-class-finished-banner').style.display = 'block';
+      if (data.final_pdf_token) {
+        studentFinalToken = data.final_pdf_token;
+        const link = document.getElementById('student-download-link');
+        link.href = `/sync/final_pdf?key=${encodeURIComponent(App.studentKey)}&token=${encodeURIComponent(data.final_pdf_token)}`;
+        link.download = 'clase_final_notas.pdf';
+      }
+    }
+
+    document.getElementById('student-conn-dot').className = 'status-dot green';
+    document.getElementById('student-conn-label').textContent = 'Sincronizado';
+  } catch (_) {
+    document.getElementById('student-conn-dot').className = 'status-dot';
+    document.getElementById('student-conn-label').textContent = 'Sin conexion';
+  }
+}
+
+function refreshStudentSlideImage() {
+  const img = document.getElementById('student-slide-img');
+  const placeholder = document.getElementById('student-slide-placeholder');
+  const t = Date.now();
+  App.studentSlideToken = t;
+  const src = `/ui/student/slides/image?key=${encodeURIComponent(App.studentKey)}&t=${t}`;
+  const tmp = new Image();
+  tmp.onload = () => {
+    img.src = src;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+  tmp.onerror = () => {
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+  };
+  tmp.src = src;
+}
+
+async function studentSendText() {
+  const ta = document.getElementById('student-chat-input');
+  const text = ta.value.trim();
+  if (!text) return;
+  ta.value = '';
+  addStudentMessage('user', text);
+  try {
+    const data = await api('POST', '/ui/teacher/send', formBody({ text }));
+    if (data.description) addStudentMessage('assistant', data.description);
+    if (data.tts_payload) speakTTS(data.tts_payload);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function studentToggleRecording() {
+  if (App.isRecording) {
+    stopStudentRecording();
+  } else {
+    await startStudentRecording();
+  }
+}
+
+async function startStudentRecording() {
+  try {
+    App.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    App.mediaRecorder = new MediaRecorder(App.audioStream);
+    const chunks = [];
+    App.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    App.mediaRecorder.onstop = async () => {
+      if (chunks.length === 0) return;
+      const blob = new Blob(chunks, { type: App.mediaRecorder.mimeType || 'audio/webm' });
+      const fd = new FormData();
+      fd.append('file', blob, 'audio.webm');
+      try {
+        const data = await api('POST', '/ui/teacher/audio', fd);
+        if (data.error) toast(data.error, 'error', 6000);
+        if (data.transcribed) addStudentMessage('user', data.transcribed);
+        if (data.description) addStudentMessage('assistant', data.description);
+        if (data.tts_payload) speakTTS(data.tts_payload);
+      } catch (e) { toast('Error al transcribir', 'error'); }
+    };
+    App.mediaRecorder.start();
+    App.isRecording = true;
+    const btn = document.getElementById('student-rec-btn');
+    btn.classList.replace('idle', 'recording');
+    document.getElementById('student-rec-btn-text').textContent = 'Detener';
+  } catch (e) {
+    toast('No se pudo acceder al microfono: ' + e.message, 'error');
+  }
+}
+
+function stopStudentRecording() {
+  if (App.mediaRecorder && App.isRecording) App.mediaRecorder.stop();
+  if (App.audioStream) { App.audioStream.getTracks().forEach(t => t.stop()); App.audioStream = null; }
+  App.isRecording = false;
+  const btn = document.getElementById('student-rec-btn');
+  btn.classList.replace('recording', 'idle');
+  document.getElementById('student-rec-btn-text').textContent = 'Grabar clip';
+}
+
+function stopPolling() {
+  if (App.pollIntervalId) { clearInterval(App.pollIntervalId); App.pollIntervalId = null; }
+  if (App.autoIntervalId) { clearInterval(App.autoIntervalId); App.autoIntervalId = null; }
+}
+
+async function precomputeAll() {
+  try {
+    const data = await api('POST', '/ui/teacher/precompute');
+    updatePrecomputeUI(data.status, data.progress);
+    toast('Preproceso iniciado', 'success', 1500);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function precomputeRetry() {
+  try {
+    const data = await api('POST', '/ui/teacher/precompute/retry');
+    updatePrecomputeUI(data.status, data.progress);
+    toast('Reintentando errores...', 'info', 1500);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function updatePrecomputeUI(status, progress) {
+  if (status !== undefined) {
+    document.getElementById('precompute-status-text').textContent = status;
+  }
+  if (progress !== undefined) {
+    const pct = Math.round(progress);
+    document.getElementById('precompute-bar').style.width = pct + '%';
+    document.getElementById('precompute-pct').textContent = pct + '%';
+  }
+}
+
+async function finishClass() {
+  if (!confirm('¿Finalizar la clase? Se generara el PDF con notas de accesibilidad.')) return;
+  try {
+    const data = await api('POST', '/ui/teacher/finish');
+    document.getElementById('class-status-text').textContent = data.status;
+    if (data.ok) {
+      App.classFinished = true;
+      document.getElementById('class-finished-banner').style.display = 'block';
+      toast('Clase finalizada', 'success');
+    } else {
+      toast(data.status, 'error');
+    }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function toggleAccordion(name) {
+  const toggle = document.getElementById(`${name}-toggle`);
+  const body = document.getElementById(`${name}-body`);
+  toggle.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); slidePrev(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); slideNext(); }
+  });
+}
+
+function toggleAssistantPanel() {
+  const panel = document.getElementById('assistant-panel');
+  const slidePanel = document.querySelector('#view-teacher .slide-panel');
+  const strip = document.getElementById('reopen-assistant-strip');
+  const icon = document.getElementById('toggle-assistant-icon');
+
+  const isCollapsed = panel.classList.contains('collapsed');
+  if (isCollapsed) {
+    panel.classList.remove('collapsed');
+    slidePanel.classList.remove('expanded');
+    strip.classList.remove('visible');
+    icon.innerHTML = '<path d="M9 18l6-6-6-6"/>';
+    document.getElementById('toggle-assistant-btn').title = 'Ocultar asistente';
+  } else {
+    panel.classList.add('collapsed');
+    slidePanel.classList.add('expanded');
+    strip.classList.add('visible');
+    icon.innerHTML = '<path d="M15 18l-6-6 6-6"/>';
+    document.getElementById('toggle-assistant-btn').title = 'Mostrar asistente';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => { autoInit(); });
+</script>
+</body>
+</html>
