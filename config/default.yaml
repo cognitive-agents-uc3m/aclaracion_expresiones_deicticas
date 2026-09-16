@@ -1,0 +1,126 @@
+# Configuracion base del modulo. Se sobreescribe, en este orden de prioridad
+# creciente:
+#   1. este fichero
+#   2. config/<entorno>.yaml         (entorno = COGNITIVE_AGENT_ENV)
+#   3. variables de entorno          (COGNITIVE_AGENT__SECCION__CLAVE)
+#
+# Las credenciales de Google se resuelven por ADC (Application Default Credentials) o por Secret Manager. Ver ADR-0006.
+
+environment: development
+
+session:
+  transcript_window: 3
+
+notes:
+  slide_tag_idle_seconds: 2.0
+  slide_tag_template: "[Diapositiva {number}]"
+  clarification_tag_template: "[Aclaración — Diapositiva {number}]"
+  auto_insert_clarifications: false
+
+clarification:
+  # Reproducción bajo demanda por defecto.
+  auto_play: false
+  # Aviso no intrusivo cuando hay una aclaración nueva disponible.
+  announce_availability: true
+  notification_sound: true
+
+  timeout_seconds: 20.0
+  # Varias expresiones deícticas dentro de esta ventana se
+  # atienden con una sola generación.
+  min_seconds_between: 3.0
+  # Longitud máxima de la aclaracion. El generador la recibe como
+  # instrucción y el validador la aplica como límite.
+  max_words: 45
+  on_stale_slide: keep
+
+deixis:
+  detector: rules_then_classifier
+  min_confidence: 0.5
+  classifier_model_path: models/deixis_classifier.joblib
+  classifier_threshold: 0.30
+
+llm:
+  provider: gemini         # gemini | ollama | fake
+  clarification_provider: gemini
+  notes_provider: ollama
+  deixis_provider: gemini  # usado si el modo comparativo es rules_then_llm
+  clarification_model: gemini-3.6-flash
+  deixis_model: gemini-2.5-flash
+  description_model: gemini-2.5-flash
+  notes_model: qwen3:4b-instruct-2507-q4_K_M
+  temperature: 0.0
+  request_timeout_seconds: 90
+  gcp_project: ""          # vacio -> se resuelve por ADC
+  gcp_location: global
+  ollama_base_url: http://localhost:11434
+  ollama_router_model: qwen3:4b-instruct-2507-q4_K_M
+  ollama_vision_model: qwen3-vl:8b-instruct
+  ollama_num_gpu: 99
+
+stt:
+  provider: whisper_local  # gemini | whisper_local | fake
+  model: gemini-2.5-flash
+  language: es
+  whisper_model: small
+  whisper_device: cuda
+
+audio:
+  # Deteccion de voz (VAD) en el navegador del profesor: se trocea el audio por
+  # silencios, no por ventanas fijas, para que cada fragmento sea una frase
+  # completa. Si se cortara a mitad de frase, la expresion deictica podria
+  # quedar partida entre dos fragmentos y no detectarse.
+  #
+  # El umbral se autocalibra con el ruido ambiente del aula durante los
+  # primeros 0,8 s, estos valores son el suelo minimo.
+  vad_energy_threshold: 0.01      # RMS minimo para considerar que hay voz
+  vad_preroll_seconds: 0.2        # audio previo que se conserva, para no
+                                  # cortar la primera silaba
+  vad_silence_seconds: 1.2        # silencio que cierra un fragmento
+  vad_min_speech_seconds: 0.3     # por debajo de esto se descarta (toses, golpes)
+  vad_max_segment_seconds: 25.0   # corte forzoso para explicaciones largas
+  vad_calibration_seconds: 0.8    # medición del ruido ambiente al arrancar
+  vad_threshold_factor: 2.0       # cuánto por encima del ruido ambiente
+
+tts:
+  provider: browser
+  rate: 175
+
+persistence:
+  # memory  -> todo en RAM (desarrollo y pruebas)
+  # file    -> sesiones y notas en disco, descripciones en SQLite
+  backend: file
+  data_dir: ".data"
+  slide_knowledge_db: "slide_knowledge_vqwen3_8b_instruct_v3.sqlite3"
+
+prompts:
+  directory: prompts
+  registry: prompts/registry.yaml
+
+telemetry:
+  enabled: true
+  redact_content: true
+  sink: both               # logging | jsonl | both | null
+  file_path: telemetry.jsonl
+
+scheduler:
+  workers: 2
+  queue_size: 32
+
+accessibility:
+  shortcuts:
+    listen_clarification: F7
+    announce_slide: F8
+    insert_clarification: F9
+    jump_to_slide_notes: F2
+  live_region_politeness: polite
+  clarification_politeness: assertive
+
+server:
+  host: 0.0.0.0
+  port: 7860
+  student_ui_port: 7861
+  teacher_base_url: http://127.0.0.1:7860
+
+logging:
+  level: INFO
+  format: text

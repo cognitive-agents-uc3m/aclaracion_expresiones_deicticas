@@ -1,0 +1,28 @@
+prompts:
+  slide_description_html:
+    description: Genera la representacion HTML de una diapositiva.
+    base:
+      active: v2
+      versions:
+        v2: base/slide_description_html.v2.md
+
+  clarification:
+    description: Genera una aclaracion de una referencia visual.
+    base:
+      active: v2
+      versions:
+        v2: base/clarification.v2.md
+
+  deictic_detection:
+    description: Decide si una referencia visual necesita una aclaracion.
+    base:
+      active: v2
+      versions:
+        v2: base/deictic_detection.v2.md
+
+  notes_processing:
+    description: Formatea los apuntes del alumno para su exportacion.
+    base:
+      active: v1
+      versions:
+        v1: base/notes_processing.v1.md

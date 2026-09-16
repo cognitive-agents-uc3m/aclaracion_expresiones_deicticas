@@ -1,0 +1,11 @@
+services:
+  profesor:
+    environment:
+      COGNITIVE_AGENT__STT__WHISPER_DEVICE: cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

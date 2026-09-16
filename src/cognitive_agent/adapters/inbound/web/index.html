@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cognitive Agent</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI Variable', 'Segoe UI', Inter, sans-serif;
+    background: #eef3f8;
+    color: #172033;
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+
+  body, body *, body *::before, body *::after { font-size: 24px !important; }
+  button { font-size: 24px !important; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+  :focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .saltar {
+    position: absolute; left: -9999px; top: 0; z-index: 100;
+    background: #fff; color: #1e1b4b; padding: 0.7rem 1.2rem; font-weight: 600;
+  }
+  .saltar:focus { left: 0; }
+
+  .app-header {
+    background: #ffffff;
+    color: #111827;
+    padding: 0 28px;
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #d7e0ec;
+    box-shadow: 0 10px 26px rgba(15,23,42,0.08);
+  }
+  .app-header .logo { font-size: 1.2rem; font-weight: 850; letter-spacing: 0; margin: 0; }
+  .app-header .logo span { color: #1d4ed8; }
+  .header-spacer { flex: 1; }
+  .header-key { font-size: 0.82rem; color: #334155; font-weight: 700; }
+  .session-title-input {
+    background: #f8fafc; border: 1px solid #b7c4d6; border-radius: 8px;
+    color: #111827; font-size: 0.95rem; font-weight: 600; font-family: inherit;
+    padding: 6px 10px; outline: none; max-width: 280px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .session-title-input[hidden] { display: none; }
+  .session-title-input::placeholder { color: #475569; font-weight: 500; }
+  .session-title-input:hover { border-color: #2563eb; background: #ffffff; }
+  .session-title-input:focus { border-color: #2563eb; background: #ffffff; }
+  .header-btn {
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    color: #1d4ed8; width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .header-btn:hover { background: #dbeafe; border-color: #2563eb; }
+
+  .dashboard-body { display: flex; gap: 20px; align-items: stretch; padding: 20px 24px; }
+  .slide-panel {
+    width: 58%; display: flex; flex-direction: column; padding: 18px; gap: 14px;
+    border: 1px solid #d7e0ec; border-radius: 8px; background: #ffffff;
+    box-shadow: 0 12px 28px rgba(15,23,42,0.07);
+  }
+  .assistant-panel {
+    width: 42%; display: flex; flex-direction: column; padding: 18px; gap: 14px;
+    border: 1px solid #d7e0ec; border-radius: 8px; background: #ffffff;
+    box-shadow: 0 12px 28px rgba(15,23,42,0.07);
+  }
+  @media (max-width: 900px) {
+    .dashboard-body { flex-direction: column; }
+    .slide-panel, .assistant-panel { width: 100%; border-right: none; }
+  }
+
+  h2.section-label, h3.section-label {
+    font-size: 0.9rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #1e3a8a; margin: 0 0 6px;
+  }
+
+  .upload-zone {
+    border: 2px dashed #93b4e8; border-radius: 8px; padding: 18px;
+    text-align: center; background: #f8fbff; position: relative;
+    transition: all 0.2s;
+  }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: #2563eb; background: #eff6ff; }
+  .upload-zone input[type="file"] { width: 100%; cursor: pointer; }
+  .upload-text { font-size: 0.9rem; color: #1f2937; font-weight: 700; margin: 0 0 4px; }
+  .upload-hint { font-size: 0.78rem; color: #475569; margin: 4px 0 0; }
+  .upload-zone.has-file { border-color: #059669; background: #f0fdf4; }
+  .upload-zone.has-file .upload-text { color: #047857; font-weight: 600; }
+
+  .slide-viewer {
+    position: relative; background: #0f172a; border-radius: 8px; overflow: hidden;
+    aspect-ratio: 16/9; width: 100%; max-height: 60vh;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  }
+  .slide-viewer img { width: 100%; height: 100%; object-fit: contain; cursor: crosshair; }
+  .slide-viewer:fullscreen {
+    width: 100vw; height: 100vh; max-height: none; aspect-ratio: auto;
+    border-radius: 0; box-shadow: none;
+  }
+  .slide-viewer::backdrop { background: #0f172a; }
+  .fullscreen-btn {
+    position: absolute; top: 12px; right: 12px; z-index: 3;
+    width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid rgba(255,255,255,0.75); border-radius: 8px;
+    background: rgba(15,23,42,0.82); color: white; cursor: pointer;
+  }
+  .fullscreen-btn:hover:not(:disabled) { background: #1d4ed8; border-color: white; }
+  .fullscreen-btn:disabled { display: none; }
+  .fullscreen-slide-btn, .fullscreen-slide-label { display: none; }
+  .slide-viewer:fullscreen .fullscreen-slide-btn {
+    position: absolute; top: 50%; z-index: 3; transform: translateY(-50%);
+    width: 52px; height: 52px; align-items: center; justify-content: center;
+    border: 1.5px solid rgba(255,255,255,0.75); border-radius: 8px;
+    background: rgba(15,23,42,0.82); color: white; cursor: pointer;
+  }
+  .slide-viewer:fullscreen .fullscreen-slide-btn { display: flex; }
+  .slide-viewer:fullscreen .fullscreen-slide-btn:hover:not(:disabled) {
+    background: #1d4ed8; border-color: white;
+  }
+  .slide-viewer:fullscreen .fullscreen-slide-btn:disabled {
+    opacity: 0.35; cursor: default;
+  }
+  .fullscreen-prev { left: 16px; }
+  .fullscreen-next { right: 16px; }
+  .slide-viewer:fullscreen .fullscreen-slide-label {
+    display: block; position: absolute; bottom: 16px; left: 50%; z-index: 3;
+    transform: translateX(-50%); margin: 0; padding: 7px 12px;
+    border-radius: 6px; background: rgba(15,23,42,0.82); color: white;
+    font-size: 0.88rem; font-weight: 600;
+  }
+  .slide-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    color: #cbd5e1; user-select: none;
+  }
+  .slide-placeholder svg { width: 48px; height: 48px; opacity: 0.5; }
+  .slide-placeholder p { font-size: 0.85rem; margin: 0; }
+  .pointer-dot {
+    position: absolute; width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(239,68,68,0.85); border: 2px solid white;
+    box-shadow: 0 0 12px rgba(239,68,68,0.6);
+    transform: translate(-50%, -50%); pointer-events: none;
+    transition: left 0.08s, top 0.08s; display: none;
+  }
+
+  .slide-nav { display: flex; align-items: center; gap: 10px; }
+  .nav-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 8px; border: 1.5px solid #b7c4d6;
+    background: white; cursor: pointer; color: #172033; transition: all 0.15s;
+  }
+  .nav-btn:hover:not(:disabled) { border-color: #2563eb; color: #1d4ed8; background: #eff6ff; }
+  .nav-btn:disabled { opacity: 1; cursor: default; color: #334155; background: #e2e8f0; border-color: #b7c4d6; }
+  .slide-label {
+    flex: 1; text-align: center; font-size: 0.9rem; font-weight: 600; color: #1e293b;
+    background: #f8fafc; border: 1.5px solid #b7c4d6; border-radius: 8px;
+    padding: 8px 12px; margin: 0;
+  }
+
+  .description-box {
+    background: #f8fafc; border-radius: 8px; border: 1px solid #d7e0ec;
+    padding: 14px; font-size: 0.88rem; color: #172033; line-height: 1.65;
+    min-height: 80px; max-height: 220px; overflow-y: auto;
+  }
+  .description-box.empty { color: #475569; font-style: italic; }
+  .description-box h2, .description-box h3 { font-size: 0.9rem; margin: 0.6em 0 0.3em; }
+  .description-box table { border-collapse: collapse; font-size: 0.8rem; }
+  .description-box td, .description-box th { border: 1px solid #cbd5e1; padding: 3px 6px; }
+
+  .description-box.bbox-debug { max-height: 420px; }
+  .description-box.bbox-debug [data-bbox] {
+    outline: 1px dashed #94a3b8; outline-offset: 2px; margin-bottom: 6px;
+  }
+  .description-box.bbox-debug [data-bbox]::before {
+    content: attr(data-bbox-source) " · " attr(data-element-id) attr(data-element-ids)
+             " · " attr(data-bbox);
+    display: block; font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.62rem; font-weight: 600; line-height: 1.5;
+    padding: 0 4px; margin-bottom: 2px; border-radius: 3px;
+    background: #e2e8f0; color: #334155; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .description-box.bbox-debug [data-bbox-source="model-id"],
+  .description-box.bbox-debug [data-bbox-source="text"],
+  .description-box.bbox-debug [data-bbox-source="visual-order"] { outline-color: #047857; }
+  .description-box.bbox-debug [data-bbox-source="model-id"]::before,
+  .description-box.bbox-debug [data-bbox-source="text"]::before,
+  .description-box.bbox-debug [data-bbox-source="visual-order"]::before {
+    background: #d1fae5; color: #065f46;
+  }
+
+  .description-box.bbox-debug [data-bbox-source="text-union"],
+  .description-box.bbox-debug [data-bbox-source="children"] { outline-color: #b45309; }
+  .description-box.bbox-debug [data-bbox-source="text-union"]::before,
+  .description-box.bbox-debug [data-bbox-source="children"]::before {
+    background: #fef3c7; color: #92400e;
+  }
+
+  .description-box.bbox-debug [data-bbox-source="inherited"],
+  .description-box.bbox-debug [data-bbox-source="page"],
+  .description-box.bbox-debug [data-bbox-source="visual-region"] { outline-color: #dc2626; }
+  .description-box.bbox-debug [data-bbox-source="inherited"]::before,
+  .description-box.bbox-debug [data-bbox-source="page"]::before,
+  .description-box.bbox-debug [data-bbox-source="visual-region"]::before {
+    background: #fee2e2; color: #991b1b;
+  }
+  .description-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bbox-debug-btn, .copy-html-btn {
+    background: white; border: 1px solid #b7c4d6; border-radius: 8px;
+    padding: 3px 9px; font-size: 0.72rem; font-weight: 700; color: #172033;
+    cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .bbox-debug-btn:hover, .copy-html-btn:hover:not(:disabled) { background: #eff6ff; border-color: #2563eb; }
+  .copy-html-btn:disabled { cursor: not-allowed; background: #e2e8f0; color: #334155; }
+  .bbox-debug-btn[aria-pressed="true"] { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+
+  .bbox-layer { position: absolute; inset: 0; pointer-events: none; display: none; }
+  .bbox-layer.on { display: block; }
+  .bbox-rect {
+    position: absolute; border: 1.5px solid #64748b;
+    background: rgba(100,116,139,0.10); border-radius: 2px;
+    transition: background 0.12s, box-shadow 0.12s;
+  }
+  .bbox-rect > span {
+    position: absolute; top: -1px; left: -1px;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.6rem; font-weight: 700; line-height: 1.4; padding: 0 3px;
+    background: #64748b; color: white; border-radius: 2px 0 2px 0; white-space: nowrap;
+  }
+  .bbox-rect.exacta { border-color: #10b981; background: rgba(16,185,129,0.12); }
+  .bbox-rect.exacta > span { background: #047857; }
+  .bbox-rect.derivada { border-color: #f59e0b; background: rgba(245,158,11,0.10); }
+  .bbox-rect.derivada > span { background: #b45309; }
+
+  .bbox-rect.aproximada {
+    border-color: #ef4444; border-style: dashed; background: rgba(239,68,68,0.10);
+  }
+  .bbox-rect.aproximada > span { background: #b91c1c; }
+
+  .bbox-rect.activa {
+    background: rgba(99,102,241,0.35);
+    box-shadow: 0 0 0 2px #4338ca, 0 0 16px rgba(67,56,202,0.7);
+  }
+  .description-box.bbox-debug [data-bbox].activa { background: #e0e7ff; }
+
+  .accordion-toggle {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    background: white; border: 1px solid #b7c4d6; border-radius: 8px;
+    padding: 10px 14px; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+    color: #172033; font-family: inherit; text-align: left;
+  }
+  .accordion-toggle:hover { background: #eff6ff; border-color: #2563eb; }
+  .accordion-toggle .chevron { transition: transform 0.2s; }
+  .accordion-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+  .accordion-body { display: none; margin-top: 8px; }
+  .accordion-body.open { display: block; }
+
+  .progress-bar-track { width: 100%; height: 8px; background: #cbd5e1; border-radius: 4px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: #1d4ed8; transition: width 0.4s ease; }
+
+  .messages-area {
+    flex: 1; min-height: 14rem; max-height: 40vh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 10px; padding: 4px 2px;
+    list-style: none; margin: 0;
+  }
+  .message { display: flex; gap: 10px; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .msg-avatar {
+    width: 32px; height: 32px; border-radius: 10px; display: flex;
+    align-items: center; justify-content: center; font-size: 0.78rem;
+    flex-shrink: 0; font-weight: 700;
+  }
+  .msg-avatar.assistant { background: #dbeafe; color: #1d4ed8; }
+  .msg-avatar.user { background: #dbeafe; color: #1d4ed8; }
+  .msg-bubble {
+    max-width: calc(100% - 44px); padding: 10px 14px; border-radius: 14px;
+    font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap;
+  }
+  .msg-bubble.assistant { background: #eff6ff; border: 1px solid #bfdbfe; color: #172033; border-radius: 4px 14px 14px 14px; }
+  .msg-bubble.user { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 14px 4px 14px 14px; }
+  .msg-bubble.deixis { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+  .msg-bubble.error { background: #fef2f2; border: 1.5px solid #fca5a5; color: #991b1b; font-weight: 600; }
+  .msg-bubble.transcribed { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; font-style: italic; }
+
+  .empty-chat {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 10px; color: #475569; font-size: 0.85rem;
+    text-align: center; padding: 20px;
+  }
+  .empty-chat svg { width: 40px; height: 40px; opacity: 0.4; }
+  .empty-chat p { margin: 0; }
+
+  .input-area { border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .controls-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .auto-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px;
+    border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+    background: #f8fafc; color: #172033; border: 1.5px solid #b7c4d6;
+  }
+  .auto-btn:hover:not(:disabled) { background: #ecfdf5; color: #047857; border-color: #6ee7b7; }
+  .auto-btn[aria-pressed="true"] { background: #047857; color: white; border-color: #047857; }
+  .auto-btn:disabled { opacity: 1; cursor: not-allowed; background: #e2e8f0; color: #334155; }
+
+  .btn-primary {
+    padding: 10px 18px; background: #1d4ed8;
+    color: white; font-weight: 600; font-size: 0.88rem; border: none;
+    border-radius: 8px; cursor: pointer; font-family: inherit;
+  }
+  .btn-primary:hover:not(:disabled) { background: #1e40af; }
+  .btn-primary:disabled { opacity: 1; cursor: not-allowed; background: #cbd5e1; color: #334155; }
+  .btn-secondary {
+    padding: 9px 16px; background: white; color: #1d4ed8; font-weight: 700;
+    font-size: 0.85rem; border: 1.5px solid #93b4e8; border-radius: 8px;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-secondary:hover:not(:disabled) { background: #eff6ff; border-color: #2563eb; }
+  .btn-secondary:disabled { opacity: 1; cursor: not-allowed; background: #e2e8f0; color: #334155; border-color: #b7c4d6; }
+  .btn-danger {
+    padding: 9px 16px; background: #fef2f2; color: #991b1b; font-weight: 700;
+    font-size: 0.85rem; border: 1.5px solid #ef4444; border-radius: 8px;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-danger:hover:not(:disabled) { background: #fee2e2; border-color: #ef4444; }
+  .btn-danger:disabled { opacity: 1; cursor: not-allowed; background: #e2e8f0; color: #334155; border-color: #b7c4d6; }
+
+  .form-input {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #b7c4d6;
+    border-radius: 8px; font-size: 0.9rem; font-family: inherit;
+    outline: none; background: white; color: #1e293b;
+  }
+  .form-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.16); }
+
+  .estado { font-size: 0.8rem; color: #334155; margin: 0; }
+
+  .class-finished-banner {
+    display: none; background: #f0fdf4; border: 1.5px solid #86efac;
+    border-radius: 12px; padding: 14px; font-size: 0.85rem; color: #14532d;
+  }
+  .class-finished-banner.visible { display: block; }
+  .class-finished-banner a { color: #047857; font-weight: 600; }
+
+  .status-bar {
+    min-height: 38px; background: white; border-top: 1px solid #d7e0ec;
+    display: flex; align-items: center; padding: 6px 16px; gap: 16px; flex-wrap: wrap;
+  }
+  .status-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #334155; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
+  .status-dot.green { background: #059669; }
+  .status-dot.blue { background: #2563eb; }
+
+  #avisos {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  #errores {
+    border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; font-weight: 600;
+    border: 2px solid #b91c1c; background: #fef2f2; color: #991b1b;
+    margin: 12px 16px 0;
+  }
+  #errores:empty { display: none; }
+
+</style>
+</head>
+<body>
+<a class="saltar" href="#principal">Saltar al contenido principal</a>
+
+<header class="app-header">
+  <h1 class="logo">Cognitive <span>Agent</span></h1>
+
+  <label class="sr-only" for="session-title-input" hidden>Título de la sesión</label>
+  <input type="text" id="session-title-input" class="session-title-input"
+         placeholder="Título de la sesión (opcional)" maxlength="200" disabled hidden>
+
+  <span class="header-spacer"></span>
+  <span class="header-key" id="header-session-key"></span>
+</header>
+
+<div>
+  <div id="avisos" role="status"></div>
+  <div id="errores" role="alert"></div>
+</div>
+
+<main id="principal">
+  <div class="dashboard-body">
+
+    <section class="slide-panel">
+      <h2 class="section-label" id="t-presentacion">Presentación</h2>
+
+      <div class="upload-zone" id="upload-zone">
+        <p class="upload-text" id="upload-text">Selecciona o arrastra tu PDF</p>
+        <label class="sr-only" for="pdf-input">Archivo PDF de la presentación</label>
+        <input type="file" accept="application/pdf" id="pdf-input" disabled>
+        <p class="upload-hint">Solo archivos PDF</p>
+      </div>
+      <button class="btn-primary" id="btn-iniciar" type="button">Iniciar sesión</button>
+
+      <div>
+        <div class="slide-viewer" id="slide-viewer">
+          <img id="slide-img" style="display:none;" alt="Vista previa de la diapositiva actual">
+          <div class="slide-placeholder" id="slide-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            <p>Sin presentación</p>
+          </div>
+          <div class="pointer-dot" id="pointer-dot"></div>
+
+          <div class="bbox-layer" id="bbox-layer"></div>
+          <button class="fullscreen-btn" id="btn-fullscreen" type="button" disabled
+                  aria-label="Mostrar diapositiva a pantalla completa"
+                  title="Mostrar diapositiva a pantalla completa">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
+            </svg>
+          </button>
+          <button class="fullscreen-slide-btn fullscreen-prev" id="btn-fullscreen-prev" type="button"
+                  disabled aria-label="Diapositiva anterior">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+          <button class="fullscreen-slide-btn fullscreen-next" id="btn-fullscreen-next" type="button"
+                  disabled aria-label="Diapositiva siguiente">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+          <p class="fullscreen-slide-label" id="fullscreen-slide-label" aria-live="polite"></p>
+        </div>
+
+        <div class="slide-nav" style="margin-top:10px;">
+          <button class="nav-btn" id="btn-prev" type="button" disabled aria-label="Diapositiva anterior">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <p class="slide-label" id="slide-label" role="status" aria-live="polite">Sin PDF</p>
+          <button class="nav-btn" id="btn-next" type="button" disabled aria-label="Diapositiva siguiente">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <h3 class="section-label" style="margin:0;">Descripción de la diapositiva</h3>
+          <div class="description-actions">
+            <button class="copy-html-btn" id="copy-html-btn" type="button" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span id="copy-html-label">Copiar HTML</span>
+            </button>
+            <button class="bbox-debug-btn" id="bbox-debug-btn" type="button" aria-pressed="false">Ver cajas</button>
+          </div>
+        </div>
+
+        <div class="description-box empty" id="slide-description">Sin descripción precomputada.</div>
+      </div>
+
+      <div>
+        <button class="accordion-toggle" id="precompute-toggle" type="button"
+                aria-expanded="false" aria-controls="precompute-body">
+          <span>Preprocesado de diapositivas</span>
+          <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="accordion-body" id="precompute-body">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div class="progress-bar-track" style="flex:1;" role="progressbar" id="precompute-bar"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="precompute-status-text">
+              <div class="progress-bar-fill" style="width:0%"></div>
+            </div>
+            <span id="precompute-pct" style="font-size:0.78rem;color:#475569;font-weight:600;">0%</span>
+          </div>
+          <p class="estado" id="precompute-status-text">Sin presentación cargada.</p>
+          <button class="btn-secondary" id="btn-reintentar" type="button" disabled>Reintentar errores</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;padding-top:4px;flex-wrap:wrap;">
+        <p class="estado" id="class-status-text" style="flex:1;">Sin sesión iniciada.</p>
+        <button class="btn-danger" id="btn-finalizar" type="button" disabled>Finalizar clase</button>
+      </div>
+
+      <div class="class-finished-banner" id="class-finished-banner">
+        Clase finalizada.
+      </div>
+    </section>
+
+    <section class="assistant-panel">
+      <h2 class="section-label" id="t-asistente">Asistente</h2>
+
+      <ul class="messages-area" id="messages-area" role="log" aria-live="polite" aria-label="Actividad de la clase">
+        <li class="empty-chat" id="empty-chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <p>Las respuestas del asistente aparecen aquí.</p>
+          <p style="color:#334155;font-size:0.78rem;">Comienza la grabación para activar el asistente.</p>
+        </li>
+      </ul>
+
+      <div class="input-area">
+        <div class="controls-row">
+          <button class="auto-btn" id="auto-btn" type="button" disabled aria-pressed="false">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <span id="auto-btn-text">Comenzar grabación</span>
+          </button>
+          <div style="flex:1;"></div>
+          <span class="estado" id="auto-status"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="status-bar">
+  <div class="status-item">
+    <span class="status-dot" id="conn-dot"></span>
+    <span>Conexión: <span id="conn-label">sin conectar</span></span>
+  </div>
+  <div class="status-item">
+    <span class="status-dot blue"></span>
+    <span id="shared-status-label"></span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+const DEFAULT_SUBJECT = 'software_engineering';
+const EVENT_OWNER_KEY = 'cognitive-agent-teacher-event-owner';
+
+const App = {
+  sessionId: null, slideIndex: 0, slideCount: 0,
+  slideDescriptionHtml: '',
+  autoMode: false, stream: null,
+  events: null, eventOwnerToken: null,
+  precomputeTimer: null, tituloTimer: null,
+  ultimoFoco: null,
+
+  tituloRemoto: '', tituloSyncTimer: null,
+};
+
+const $ = (id) => document.getElementById(id);
+const avisar = (m) => { $('avisos').textContent = m || ''; };
+const fallar = (m) => {
+  $('errores').textContent = m || '';
+  if (m) {
+
+    $('errores').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    setTimeout(() => { $('errores').textContent = ''; }, 12000);
+  }
+};
+
+async function api(metodo, ruta, cuerpo) {
+  const o = { method: metodo, headers: {} };
+  if (cuerpo instanceof FormData) o.body = cuerpo;
+  else if (cuerpo !== undefined) { o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(cuerpo); }
+  const r = await fetch(ruta, o);
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(e.detail || r.statusText);
+  }
+  return r.status === 204 ? null : r.json();
+}
+
+function mensaje(rol, texto, extra) {
+  const vacio = $('empty-chat');
+  if (vacio) vacio.remove();
+  const li = document.createElement('li');
+  li.className = 'message';
+  const av = document.createElement('span');
+  av.className = 'msg-avatar ' + (rol === 'assistant' ? 'assistant' : 'user');
+  av.textContent = rol === 'assistant' ? 'IA' : 'Tú';
+  av.setAttribute('aria-hidden', 'true');
+  const b = document.createElement('div');
+  b.className = 'msg-bubble ' + rol + (extra ? ' ' + extra : '');
+  b.textContent = texto;
+  if (rol === 'assistant') { li.append(av, b); } else { li.append(b, av); }
+  $('messages-area').append(li);
+  $('messages-area').scrollTop = $('messages-area').scrollHeight;
+}
+
+function habilitar(activo) {
+  ['pdf-input','auto-btn','btn-finalizar','session-title-input']
+    .forEach((id) => { $(id).disabled = !activo; });
+  $('btn-fullscreen').disabled = !activo || !App.slideCount;
+  $('btn-fullscreen-prev').disabled = !activo || !App.slideCount || App.slideIndex === 0;
+  $('btn-fullscreen-next').disabled = !activo || !App.slideCount || App.slideIndex >= App.slideCount - 1;
+}
+
+function pintarDiapositiva(s) {
+  App.slideIndex = s.index; App.slideCount = s.count;
+  $('slide-label').textContent = s.label;
+  $('btn-prev').disabled = !s.count || s.index === 0;
+  $('btn-next').disabled = !s.count || s.index >= s.count - 1;
+  $('btn-fullscreen').disabled = !s.count;
+  $('btn-fullscreen-prev').disabled = !s.count || s.index === 0;
+  $('btn-fullscreen-next').disabled = !s.count || s.index >= s.count - 1;
+  $('fullscreen-slide-label').textContent = s.label;
+  const caja = $('slide-description');
+  if (s.description_ready && s.description) {
+    if (s.description_format === 'html') {
+      App.slideDescriptionHtml = s.description;
+      caja.innerHTML = s.description;
+      $('copy-html-btn').disabled = false;
+    } else {
+      App.slideDescriptionHtml = '';
+      caja.textContent = s.description;
+      $('copy-html-btn').disabled = true;
+    }
+    caja.classList.remove('empty');
+  } else {
+    App.slideDescriptionHtml = '';
+    caja.textContent = 'La descripción accesible aún no está lista.';
+    caja.classList.add('empty');
+    $('copy-html-btn').disabled = true;
+  }
+  if (s.count) refrescarImagen();
+}
+
+async function copiarDescripcionHtml() {
+  if (!App.slideDescriptionHtml) return;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(App.slideDescriptionHtml);
+    } else {
+      const auxiliar = document.createElement('textarea');
+      auxiliar.value = App.slideDescriptionHtml;
+      auxiliar.style.position = 'fixed';
+      auxiliar.style.opacity = '0';
+      document.body.appendChild(auxiliar);
+      auxiliar.select();
+      const copiado = document.execCommand('copy');
+      auxiliar.remove();
+      if (!copiado) throw new Error('El navegador no permitió acceder al portapapeles.');
+    }
+    $('copy-html-label').textContent = 'Copiado';
+    avisar('Código HTML copiado al portapapeles.');
+    setTimeout(() => { $('copy-html-label').textContent = 'Copiar HTML'; }, 1800);
+  } catch (e) {
+    fallar('No se pudo copiar el HTML: ' + e.message);
+  }
+}
+
+function refrescarImagen() {
+  const img = $('slide-img'), ph = $('slide-placeholder');
+  const src = `/api/teacher/sessions/${App.sessionId}/slide/image?t=${Date.now()}`;
+  const tmp = new Image();
+  tmp.onload = () => { img.src = src; img.style.display = 'block'; ph.style.display = 'none'; };
+  tmp.onerror = () => { img.style.display = 'none'; ph.style.display = 'flex'; };
+  tmp.src = src;
+}
+
+async function iniciar() {
+  try {
+    const d = await api('POST', '/api/teacher/sessions', {
+      subject: DEFAULT_SUBJECT,
+      title: $('session-title-input').value,
+    });
+    App.sessionId = d.session_id;
+    App.tituloRemoto = d.title || '';
+    $('session-title-input').value = App.tituloRemoto;
+    $('header-session-key').textContent = 'Sesión ' + d.session_id.slice(0, 8);
+    $('class-status-text').textContent = 'Clase en curso.';
+    $('btn-iniciar').disabled = true;
+    habilitar(true);
+
+    conectarEventos();
+
+  } catch (e) { fallar(e.message); }
+}
+
+async function enviarTitulo() {
+  App.tituloTimer = null;
+  if (!App.sessionId) return;
+  const titulo = $('session-title-input').value.trim().slice(0, 200);
+  if (titulo === App.tituloRemoto) return;
+  try {
+    const d = await api('PATCH', `/api/teacher/sessions/${App.sessionId}`, { title: titulo });
+    App.tituloRemoto = d.title || '';
+  } catch (e) { fallar('No se pudo guardar el título de la sesión: ' + e.message); }
+}
+
+function vigilarTitulo() {
+  if (App.tituloSyncTimer) clearInterval(App.tituloSyncTimer);
+  App.tituloSyncTimer = setInterval(async () => {
+    if (!App.sessionId) return;
+
+    const campo = $('session-title-input');
+    if (App.tituloTimer || document.activeElement === campo) return;
+    try {
+      const d = await api('GET', `/api/teacher/sessions/${App.sessionId}`);
+      const remoto = d.title || '';
+      if (remoto === App.tituloRemoto) return;
+      App.tituloRemoto = remoto;
+      campo.value = remoto;
+      avisar('El título de la sesión ha cambiado: ' + (remoto || '(sin título)'));
+    } catch (_) {}
+  }, 2000);
+}
+
+async function subirPdf(archivo) {
+  if (!archivo) return;
+  const zona = $('upload-zone');
+  $('upload-text').textContent = 'Subiendo…';
+  const fd = new FormData(); fd.append('file', archivo);
+  try {
+    const d = await api('POST', `/api/teacher/sessions/${App.sessionId}/deck/upload`, fd);
+    zona.classList.add('has-file');
+    $('upload-text').textContent = archivo.name;
+    $('btn-reintentar').disabled = false;
+    pintarDiapositiva(d);
+
+    vigilarPreproceso();
+  } catch (e) {
+    $('upload-text').textContent = 'Error al subir el PDF';
+    fallar(e.message);
+  }
+}
+
+async function moverDiapositiva(delta) {
+  if (!App.sessionId) return;
+  try { pintarDiapositiva(await api('POST', `/api/teacher/sessions/${App.sessionId}/slide`, { delta })); }
+  catch (e) { fallar(e.message); }
+}
+
+const VAD_POR_DEFECTO = {
+  vad_energy_threshold: 0.01, vad_preroll_seconds: 0.2,
+  vad_silence_seconds: 0.6, vad_min_speech_seconds: 0.3,
+  vad_max_segment_seconds: 12.0, vad_calibration_seconds: 0.8,
+  vad_threshold_factor: 2.5,
+};
+
+let vadCtx = null, vadSource = null, vadNode = null;
+
+function codificarWav(muestras, frecuencia) {
+  const n = muestras.length;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const txt = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  txt(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); txt(8, 'WAVE');
+  txt(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, frecuencia, true); v.setUint32(28, frecuencia * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  txt(36, 'data'); v.setUint32(40, n * 2, true);
+  let off = 44;
+  for (let i = 0; i < n; i++) {
+    const s = Math.max(-1, Math.min(1, muestras[i]));
+    v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    off += 2;
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+async function enviarSegmento(muestras, frecuencia) {
+  const fd = new FormData();
+  fd.append('file', codificarWav(muestras, frecuencia), 'segmento.wav');
+  try {
+    const d = await api('POST', `/api/teacher/sessions/${App.sessionId}/audio`, fd);
+    if (d.text) mensaje('user', d.text, 'transcribed');
+    $('auto-status').textContent = 'Escuchando…';
+  } catch (e) {
+    $('auto-status').textContent = 'Error al enviar el audio';
+    fallar('No se pudo transcribir: ' + e.message);
+  }
+}
+
+function arrancarVad(cfg) {
+  vadCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const frecuencia = vadCtx.sampleRate;
+  vadSource = vadCtx.createMediaStreamSource(App.stream);
+  vadNode = vadCtx.createScriptProcessor(2048, 1, 1);
+
+  const prerollObjetivo = Math.round(cfg.vad_preroll_seconds * frecuencia);
+  const maxMuestras = Math.round(cfg.vad_max_segment_seconds * frecuencia);
+  const minMuestras = Math.round(cfg.vad_min_speech_seconds * frecuencia);
+
+  let preroll = [], prerollLen = 0;
+  let voz = [], vozLen = 0;
+  let hablando = false, silencio = 0;
+  let calibracion = Math.ceil(cfg.vad_calibration_seconds * frecuencia / 2048);
+  let calAcum = 0, calN = 0;
+  let umbral = cfg.vad_energy_threshold;
+
+  const guardarPreroll = (trozo) => {
+    preroll.push(trozo); prerollLen += trozo.length;
+    while (prerollLen > prerollObjetivo && preroll.length > 1) {
+      prerollLen -= preroll[0].length; preroll.shift();
+    }
+  };
+
+  const cerrarSegmento = () => {
+    if (vozLen === 0) return;
+    const seg = new Float32Array(vozLen);
+    let o = 0;
+    for (const t of voz) { seg.set(t, o); o += t.length; }
+    voz = []; vozLen = 0;
+    if (seg.length < minMuestras) return;
+    $('auto-status').textContent = 'Frase enviada, transcribiendo…';
+    enviarSegmento(seg, frecuencia);
+  };
+
+  vadNode.onaudioprocess = (ev) => {
+    if (!App.autoMode) return;
+    const trozo = new Float32Array(ev.inputBuffer.getChannelData(0));
+    const seg = trozo.length / frecuencia;
+    let suma = 0;
+    for (let i = 0; i < trozo.length; i++) suma += trozo[i] * trozo[i];
+    const rms = Math.sqrt(suma / trozo.length);
+
+    if (calibracion > 0) {
+      calibracion--; calAcum += rms; calN++;
+      guardarPreroll(trozo);
+      if (calibracion === 0 && calN > 0) {
+        umbral = Math.max(cfg.vad_energy_threshold,
+                          (calAcum / calN) * cfg.vad_threshold_factor);
+        $('auto-status').textContent = 'Escuchando…';
+      }
+      return;
+    }
+
+    if (rms >= umbral) {
+      if (!hablando) {
+        hablando = true; silencio = 0;
+        voz = preroll.slice(); vozLen = prerollLen;
+        $('auto-status').textContent = 'Voz detectada…';
+      }
+      voz.push(trozo); vozLen += trozo.length; silencio = 0;
+    } else if (hablando) {
+      voz.push(trozo); vozLen += trozo.length; silencio += seg;
+      if (silencio >= cfg.vad_silence_seconds) {
+        hablando = false; silencio = 0; cerrarSegmento();
+      }
+    }
+
+    if (hablando && vozLen >= maxMuestras) cerrarSegmento();
+    guardarPreroll(trozo);
+  };
+
+  vadSource.connect(vadNode);
+
+  const mudo = vadCtx.createGain();
+  mudo.gain.value = 0;
+  vadNode.connect(mudo);
+  mudo.connect(vadCtx.destination);
+}
+
+function pararVad() {
+  try { if (vadNode) vadNode.disconnect(); } catch (_) {}
+  try { if (vadSource) vadSource.disconnect(); } catch (_) {}
+  try { if (vadCtx) vadCtx.close(); } catch (_) {}
+  vadNode = vadSource = vadCtx = null;
+}
+
+async function alternarAuto() {
+  const btn = $('auto-btn');
+
+  if (App.autoMode) {
+    App.autoMode = false;
+    pararVad();
+    if (App.stream) { App.stream.getTracks().forEach((t) => t.stop()); App.stream = null; }
+    btn.setAttribute('aria-pressed', 'false');
+    $('auto-btn-text').textContent = 'Comenzar grabación';
+    $('auto-status').textContent = '';
+    avisar('Modo automático detenido. El micrófono está apagado.');
+    return;
+  }
+
+  try {
+    App.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+  } catch (e) {
+    fallar('No se pudo acceder al micrófono: ' + e.message);
+    return;
+  }
+
+  let cfg = VAD_POR_DEFECTO;
+  try {
+    const d = await api('GET', '/api/config/audio');
+    cfg = Object.assign({}, VAD_POR_DEFECTO, d);
+    if (d.stt_available === false) {
+      fallar(`La transcripción (${d.stt_provider}) no está configurada: se grabará ` +
+             'pero no se convertirá a texto.');
+    }
+  } catch (_) {  }
+
+  App.autoMode = true;
+  btn.setAttribute('aria-pressed', 'true');
+  $('auto-btn-text').textContent = 'Grabando...';
+  $('auto-status').textContent = 'Calibrando el ruido del aula…';
+  arrancarVad(cfg);
+  avisar('Modo automático activado. Se transcribirá cada frase al detectar una pausa.');
+}
+
+async function finalizar() {
+  if (!App.sessionId) return;
+  try {
+    await api('POST', `/api/teacher/sessions/${App.sessionId}/end`);
+    if (App.autoMode) await alternarAuto();
+    if (App.eventTimer) { clearInterval(App.eventTimer); App.eventTimer = null; }
+    if (App.tituloSyncTimer) { clearInterval(App.tituloSyncTimer); App.tituloSyncTimer = null; }
+    habilitar(false);
+    $('class-finished-banner').classList.add('visible');
+    $('class-status-text').textContent = 'Clase finalizada.';
+    $('btn-iniciar').disabled = false;
+    avisar('Clase finalizada.');
+  } catch (e) { fallar(e.message); }
+}
+
+async function alternarPantallaCompleta() {
+  const visor = $('slide-viewer');
+  try {
+    if (document.fullscreenElement === visor) {
+      await document.exitFullscreen();
+    } else {
+      await visor.requestFullscreen();
+    }
+  } catch (e) {
+    fallar('No se pudo cambiar el modo de pantalla completa: ' + e.message);
+  }
+}
+
+function actualizarPantallaCompleta() {
+  const activa = document.fullscreenElement === $('slide-viewer');
+  const boton = $('btn-fullscreen');
+  const texto = activa
+    ? 'Salir de pantalla completa'
+    : 'Mostrar diapositiva a pantalla completa';
+  boton.setAttribute('aria-label', texto);
+  boton.title = texto;
+  $('pointer-dot').style.display = 'none';
+  requestAnimationFrame(dibujarCajas);
+}
+
+function conectarEventos() {
+  cerrarEventos();
+  App.eventOwnerToken = window.crypto?.randomUUID?.()
+    || `${Date.now()}-${Math.random()}`;
+  window.localStorage.setItem(EVENT_OWNER_KEY, App.eventOwnerToken);
+  App.events = new EventSource(`/api/sessions/${App.sessionId}/events/stream`);
+  App.events.onopen = () => {
+    $('conn-dot').className = 'status-dot green';
+    $('conn-label').textContent = 'conectado';
+  };
+  App.events.onerror = () => {
+    $('conn-dot').className = 'status-dot';
+    $('conn-label').textContent = 'reconectando';
+  };
+
+  const on = (name, handler) => App.events.addEventListener(name, (event) => {
+    try { handler(JSON.parse(event.data)); } catch (_) {}
+  });
+
+  on('ClarificationReady', (event) => {
+    mensaje('assistant', event.text);
+    $('shared-status-label').textContent = 'Aclaración disponible para el alumno.';
+  });
+  on('ClarificationFailed', () => {
+    fallar('No se pudo generar la aclaración. Revisa el estado del sistema.');
+  });
+  on('SlideTagInserted', (event) => {
+    const n = event.slide ? event.slide.index + 1 : '?';
+    $('shared-status-label').textContent = `El alumno ha marcado la diapositiva ${n} en sus apuntes.`;
+  });
+}
+
+function cerrarEventos() {
+  if (App.events) App.events.close();
+  App.events = null;
+}
+
+function vigilarPreproceso() {
+  if (App.precomputeTimer) clearInterval(App.precomputeTimer);
+  App.precomputeTimer = setInterval(async () => {
+    try {
+      const d = await api('GET', `/api/teacher/sessions/${App.sessionId}/precompute`);
+      const p = Math.round(d.percent || 0);
+      $('precompute-bar').setAttribute('aria-valuenow', String(p));
+      $('precompute-bar').firstElementChild.style.width = p + '%';
+      $('precompute-pct').textContent = p + '%';
+      $('precompute-status-text').textContent = d.status;
+      if (d.complete) {
+        clearInterval(App.precomputeTimer); App.precomputeTimer = null;
+
+        pintarDiapositiva(await api('GET', `/api/teacher/sessions/${App.sessionId}/slide`)
+          .catch(() => ({ index: App.slideIndex, count: App.slideCount, label: $('slide-label').textContent })));
+      }
+    } catch (_) {}
+  }, 2500);
+}
+
+function throttle(fn, ms) {
+  let ultimo = 0;
+  return (...a) => { const n = Date.now(); if (n - ultimo < ms) return; ultimo = n; return fn(...a); };
+}
+const enviarPuntero = throttle((x, y) => {
+  if (!App.sessionId) return;
+  api('POST', `/api/teacher/sessions/${App.sessionId}/pointer`, { x, y }).catch(() => {});
+}, 150);
+
+$('slide-viewer').addEventListener('mousemove', (e) => {
+  const img = $('slide-img');
+  if (!img || img.style.display === 'none') return;
+  if (e.target.closest && e.target.closest('button')) {
+    $('pointer-dot').style.display = 'none';
+    return;
+  }
+  const r = rectImagen();
+  if (!r) return;
+  const base = $('slide-viewer').getBoundingClientRect();
+  const localX = e.clientX - base.left, localY = e.clientY - base.top;
+  const x = (localX - r.left) / r.ancho, y = (localY - r.top) / r.alto;
+  if (x < 0 || x > 1 || y < 0 || y > 1) return;
+  const punto = $('pointer-dot');
+  punto.style.display = 'block';
+  punto.style.left = localX + 'px';
+  punto.style.top = localY + 'px';
+  enviarPuntero(x, y);
+});
+$('slide-viewer').addEventListener('mouseleave', () => { $('pointer-dot').style.display = 'none'; });
+
+$('btn-iniciar').addEventListener('click', iniciar);
+$('pdf-input').addEventListener('change', (e) => subirPdf(e.target.files[0]));
+$('btn-prev').addEventListener('click', () => moverDiapositiva(-1));
+$('btn-next').addEventListener('click', () => moverDiapositiva(1));
+$('btn-fullscreen-prev').addEventListener('click', () => moverDiapositiva(-1));
+$('btn-fullscreen-next').addEventListener('click', () => moverDiapositiva(1));
+$('btn-fullscreen').addEventListener('click', alternarPantallaCompleta);
+document.addEventListener('fullscreenchange', actualizarPantallaCompleta);
+$('copy-html-btn').addEventListener('click', copiarDescripcionHtml);
+$('auto-btn').addEventListener('click', alternarAuto);
+$('btn-finalizar').addEventListener('click', finalizar);
+$('btn-reintentar').addEventListener('click', async () => {
+  try { await api('POST', `/api/teacher/sessions/${App.sessionId}/precompute/retry`); vigilarPreproceso(); avisar('Reintentando las diapositivas con error.'); }
+  catch (e) { fallar(e.message); }
+});
+
+$('session-title-input').addEventListener('input', () => {
+  if (App.tituloTimer) clearTimeout(App.tituloTimer);
+  App.tituloTimer = setTimeout(enviarTitulo, 600);
+});
+
+$('session-title-input').addEventListener('blur', () => {
+  if (App.tituloTimer) { clearTimeout(App.tituloTimer); enviarTitulo(); }
+});
+
+const bboxDebugActivo = () => $('bbox-debug-btn').getAttribute('aria-pressed') === 'true';
+
+function rectImagen() {
+  const img = $('slide-img');
+  if (!img || img.style.display === 'none' || !img.naturalWidth) return null;
+  const caja = img.getBoundingClientRect();
+  const base = $('slide-viewer').getBoundingClientRect();
+  const escala = Math.min(caja.width / img.naturalWidth, caja.height / img.naturalHeight);
+  const ancho = img.naturalWidth * escala, alto = img.naturalHeight * escala;
+  return {
+    left: (caja.left - base.left) + (caja.width - ancho) / 2,
+    top: (caja.top - base.top) + (caja.height - alto) / 2,
+    ancho, alto,
+  };
+}
+
+const BBOX_CLASE = {
+  'model-id': 'exacta', 'text': 'exacta', 'visual-order': 'exacta',
+  'text-union': 'derivada', 'children': 'derivada',
+  'inherited': 'aproximada', 'page': 'aproximada', 'visual-region': 'aproximada',
+};
+
+function dibujarCajas() {
+  const capa = $('bbox-layer');
+  capa.innerHTML = '';
+  capa.classList.toggle('on', bboxDebugActivo());
+  if (!bboxDebugActivo()) return;
+  const r = rectImagen();
+  if (!r) return;
+
+  const bloques = $('slide-description').querySelectorAll('[data-bbox]');
+  bloques.forEach((bloque, i) => {
+    const n = bloque.getAttribute('data-bbox').split(',').map(Number);
+    if (n.length !== 4 || n.some(isNaN)) return;
+    const [x0, y0, x1, y1] = n;
+    const div = document.createElement('div');
+    div.className = 'bbox-rect ' + (BBOX_CLASE[bloque.getAttribute('data-bbox-source')] || '');
+    div.style.left = (r.left + x0 * r.ancho) + 'px';
+    div.style.top = (r.top + y0 * r.alto) + 'px';
+    div.style.width = Math.max(2, (x1 - x0) * r.ancho) + 'px';
+    div.style.height = Math.max(2, (y1 - y0) * r.alto) + 'px';
+    const etiqueta = document.createElement('span');
+    etiqueta.textContent = bloque.getAttribute('data-element-id')
+      || bloque.getAttribute('data-element-ids') || bloque.tagName.toLowerCase();
+    div.appendChild(etiqueta);
+    capa.appendChild(div);
+
+    const marcar = (on) => {
+      div.classList.toggle('activa', on);
+      bloque.classList.toggle('activa', on);
+    };
+    bloque.addEventListener('mouseenter', () => marcar(true));
+    bloque.addEventListener('mouseleave', () => marcar(false));
+  });
+}
+
+$('bbox-debug-btn').addEventListener('click', () => {
+  const b = $('bbox-debug-btn');
+  const activo = bboxDebugActivo();
+  b.setAttribute('aria-pressed', activo ? 'false' : 'true');
+  $('slide-description').classList.toggle('bbox-debug', !activo);
+  dibujarCajas();
+  const cajas = $('slide-description').querySelectorAll('[data-bbox]').length;
+  avisar(activo ? 'Cajas ocultas.' : `Cajas visibles: ${cajas} en esta diapositiva.`);
+});
+
+$('slide-img').addEventListener('load', dibujarCajas);
+window.addEventListener('resize', dibujarCajas);
+
+$('precompute-toggle').addEventListener('click', () => {
+  const b = $('precompute-toggle'), c = $('precompute-body');
+  const abierto = b.getAttribute('aria-expanded') === 'true';
+  b.setAttribute('aria-expanded', abierto ? 'false' : 'true');
+  c.classList.toggle('open', !abierto);
+});
+
+['dragover', 'dragleave', 'drop'].forEach((ev) => {
+  $('upload-zone').addEventListener(ev, (e) => {
+    e.preventDefault();
+    $('upload-zone').classList.toggle('drag-over', ev === 'dragover');
+    if (ev === 'drop') {
+      const f = e.dataTransfer.files[0];
+      if (f && f.type === 'application/pdf') subirPdf(f);
+      else fallar('Solo se aceptan archivos PDF.');
+    }
+  });
+});
+
+async function comprobarSalud() {
+  try {
+    const r = await fetch('/readyz');
+    const d = await r.json();
+    if (d.status === 'ok') return;
+
+    const fallos = Object.entries(d.checks || {}).filter(([, v]) => !v.ok);
+    if (!fallos.length) return;
+
+    const rotos = fallos.map(([k, v]) => `${k} (${v.detail})`);
+    const claves = fallos.map(([k]) => k);
+    let consecuencia = 'Revisa la configuración y las dependencias indicadas.';
+    if (claves.length === 1 && claves[0] === 'deixis_classifier') {
+      consecuencia =
+        'El sistema seguirá utilizando las reglas de detección, pero no aplicará el segundo filtro local.';
+    } else if (claves.includes('llm')) {
+      consecuencia =
+        'No se podrán generar aclaraciones. Para probar sin credenciales, utiliza ' +
+        '<code>COGNITIVE_AGENT__LLM__PROVIDER=fake</code>.';
+    }
+
+    $('errores').innerHTML =
+      '<strong>El sistema no está listo del todo.</strong><br>' +
+      'Sin configurar: ' + rotos.join(', ') + '.<br>' + consecuencia;
+
+  } catch (_) {  }
+}
+comprobarSalud();
+
+window.addEventListener('storage', (event) => {
+  if (event.key !== EVENT_OWNER_KEY || event.newValue === App.eventOwnerToken) return;
+  cerrarEventos();
+  $('conn-dot').className = 'status-dot';
+  $('conn-label').textContent = 'abierto en otra pestaña';
+});
+
+window.addEventListener('pagehide', cerrarEventos);
+
+document.addEventListener('keydown', (e) => {
+  const tag = (e.target && e.target.tagName || '').toLowerCase();
+  if (!document.fullscreenElement && ['input','textarea','select','button'].includes(tag)) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); moverDiapositiva(-1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); moverDiapositiva(1); }
+});
+</script>
+</body>
+</html>
