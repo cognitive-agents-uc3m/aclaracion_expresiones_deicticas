@@ -141,7 +141,10 @@ class GenerateClarification:
             with self.sessions.transaction(clarification.session_id) as live:
                 live.remember_clarification(ready.clarification_id)
 
-                live.clear_context()
+                live.retain_context(
+                    self.settings.session.context_keep_after_clarification,
+                    slide=live.current_slide,
+                )
 
         self.telemetry.record(
             TelemetryEvent(

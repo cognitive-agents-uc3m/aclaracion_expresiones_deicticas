@@ -11,7 +11,11 @@ from ..domain.value_objects.tags import (
 @dataclass(frozen=True, slots=True)
 class SessionSettings:
     default_subject: Subject = Subject.GENERIC
-    transcript_window: int = 3
+    transcript_window: int = 6
+    context_max_previous_fragments: int = 4
+    context_max_age_seconds: float = 30.0
+    context_max_chars: int = 1000
+    context_keep_after_clarification: int = 2
 
 @dataclass(frozen=True, slots=True)
 class NotesSettings:

@@ -5,7 +5,7 @@ role: user
 placeholders: [SLIDE_NUMBER, SLIDE_COUNT, ELEMENTS_INVENTORY]
 migrated_from: prompts/base/slide_description_html.v1.md
 notes: >-
-  v1 con el inventario geometrico de `domain/services/slide_layout.py` inyectado
+  v1 con el inventario visual de Gemini inyectado
   y una regla nueva: cada elemento de bloque declara con `data-element-id` a que
   caja del inventario corresponde. Las COORDENADAS no las escribe el modelo; las
   inyecta despues `domain/services/slide_html_bboxes.py` a partir del inventario,
@@ -72,7 +72,7 @@ El fragmento se insertará dentro del <main> de un documento ya existente: PROHI
 </color>
 
 <posicion>
-Debajo tienes el inventario de las cajas (bounding boxes) que se han extraído de esta misma diapositiva por análisis geométrico del PDF. Cada caja trae un identificador (id), un tipo, un rol y su posición normalizada.
+Debajo tienes el inventario de las cajas (bounding boxes) que se han detectado visualmente en esta misma diapositiva con Gemini. Cada caja trae un identificador (id), un tipo, un rol y su posición normalizada.
 
 - Añade el atributo data-element-id a cada elemento de bloque que generes (<h2>, <h3>, <p>, <ul>, <ol>, <li>, <dl>, <dt>, <dd>, <table>, <figure>, <blockquote>, <aside>, <div>), con el id de la caja del inventario de la que procede su contenido: <p data-element-id="t3">…</p>.
 - Usa ÚNICAMENTE identificadores que aparezcan literalmente en el inventario. Si el contenido de un elemento no se corresponde con ninguna caja, o si abarca varias, NO pongas el atributo: se resolverá después por texto.

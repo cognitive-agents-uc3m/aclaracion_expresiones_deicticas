@@ -318,7 +318,13 @@ def format_elements_inventory(elements: List[Dict[str, Any]]) -> str:
                 fs_hint = ""
             lines.append(f"Texto{fs_hint}: {text[:420]}")
         else:
-            hint = "elemento visual"
+            description = " ".join(str(el.get("description") or "").split()).strip()
+            class_name = str(el.get("class") or "").strip()
+            level2 = str(el.get("nivel2") or "").strip()
+            details = " / ".join(part for part in (class_name, level2) if part)
+            hint = description or "elemento visual"
+            if details:
+                hint = f"{details}: {hint}"
             lines.append(f"Contenido: {hint}")
         lines.append("")
     return "\n".join(lines).rstrip()

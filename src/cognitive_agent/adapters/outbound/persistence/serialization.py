@@ -176,7 +176,7 @@ def session_from_dict(data: dict) -> ClassroomSession:
         deck=deck,
         current_slide=_parse_slide(data.get("current_slide")),
         context=TranscriptContext(
-            fragments=fragments, max_size=int(context_data.get("max_size", 3))
+            fragments=fragments, max_size=int(context_data.get("max_size", 6))
         ),
         interaction=StudentInteractionState(
             last_keystroke_at=_parse_dt(interaction_data.get("last_keystroke_at")),

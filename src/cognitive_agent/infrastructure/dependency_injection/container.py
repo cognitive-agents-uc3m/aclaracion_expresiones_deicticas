@@ -80,6 +80,7 @@ class Container:
     chat_model: Any = None
     clarification_chat_model: Any = None
     notes_chat_model: Any = None
+    detection_chat_model: Any = None
     description_chat_model: Any = None
     deictic_chat_model: Any = None
 
@@ -105,6 +106,7 @@ class Container:
                         id(self.chat_model): self.chat_model,
                         id(self.clarification_chat_model): self.clarification_chat_model,
                         id(self.notes_chat_model): self.notes_chat_model,
+                        id(self.detection_chat_model): self.detection_chat_model,
                         id(self.description_chat_model): self.description_chat_model,
                         id(self.deictic_chat_model): self.deictic_chat_model,
                     }.values()
@@ -112,6 +114,9 @@ class Container:
                 ),
                 "detail": {
                     "default": self.settings.llm.provider,
+                    "detection": (
+                        self.settings.llm.detection_provider or self.settings.llm.provider
+                    ),
                     "clarification": (
                         self.settings.llm.clarification_provider
                         or self.settings.llm.provider
@@ -262,7 +267,9 @@ def build_container(settings: Settings | None = None, **load_kwargs) -> Containe
 
     def build_chat_model(model_provider: str, *, role: str) -> Any:
         if model_provider == "gemini":
-            if role == "description":
+            if role == "detection":
+                model_id = settings.llm.detection_model
+            elif role == "description":
                 model_id = settings.llm.description_model
             elif role == "deixis":
                 model_id = settings.llm.deixis_model
@@ -277,7 +284,7 @@ def build_container(settings: Settings | None = None, **load_kwargs) -> Containe
                 default_timeout=settings.llm.request_timeout_seconds,
             )
         if model_provider == "ollama":
-            if role == "description":
+            if role in {"description", "detection"}:
                 model_id = settings.llm.ollama_vision_model
             elif role == "notes":
                 model_id = settings.llm.notes_model
@@ -292,6 +299,7 @@ def build_container(settings: Settings | None = None, **load_kwargs) -> Containe
         return FakeChatModel()
 
     clarification_provider = settings.llm.clarification_provider or provider
+    detection_provider = settings.llm.detection_provider or provider
     notes_provider = settings.llm.notes_provider or provider
     deixis_provider = settings.llm.deixis_provider or provider
     chat_model: Any = build_chat_model(provider, role="default")
@@ -299,6 +307,7 @@ def build_container(settings: Settings | None = None, **load_kwargs) -> Containe
         clarification_provider, role="clarification"
     )
     notes_chat_model: Any = build_chat_model(notes_provider, role="notes")
+    detection_chat_model: Any = build_chat_model(detection_provider, role="detection")
     description_chat_model: Any = build_chat_model(provider, role="description")
     deictic_chat_model: Any = build_chat_model(deixis_provider, role="deixis")
 
@@ -549,6 +558,7 @@ def build_container(settings: Settings | None = None, **load_kwargs) -> Containe
         chat_model=chat_model,
         clarification_chat_model=clarification_chat_model,
         notes_chat_model=notes_chat_model,
+        detection_chat_model=detection_chat_model,
         description_chat_model=description_chat_model,
         deictic_chat_model=deictic_chat_model,
         deictic_classifier=deictic_classifier,
@@ -558,13 +568,24 @@ def build_container(settings: Settings | None = None, **load_kwargs) -> Containe
     try:
         from ...adapters.outbound.documents import (
             DescriptionAwarePointerResolver,
+            GeminiSlideElementDetector,
             PyMuPdfDocumentSource,
         )
         from ...adapters.outbound.llm import PromptedSlideDescriptionGenerator
         from ...application.use_cases.precompute import PrecomputeDeck, PrecomputePolicy
         from ...domain.value_objects.slide_description import DescriptionFormat
 
-        documents = PyMuPdfDocumentSource()
+        element_detector = GeminiSlideElementDetector(
+            vision=detection_chat_model,
+            timeout_seconds=settings.llm.request_timeout_seconds,
+        )
+        documents = PyMuPdfDocumentSource(
+            element_detector=element_detector,
+            processing_profile=(
+                f"detect={settings.llm.detection_model};"
+                f"describe={settings.llm.description_model}"
+            ),
+        )
         description_generator = PromptedSlideDescriptionGenerator(
             vision=description_chat_model,
             prompts=prompts,
@@ -588,6 +609,8 @@ def build_container(settings: Settings | None = None, **load_kwargs) -> Containe
             policy=PrecomputePolicy(use_pdf_page=provider != "ollama"),
         )
     except ImportError:
-        logger.info("PyMuPDF no disponible: preprocesado de presentaciones desactivado.")
+        logger.info(
+            "PyMuPDF o Pillow no disponibles: preprocesado de presentaciones desactivado."
+        )
 
     return container

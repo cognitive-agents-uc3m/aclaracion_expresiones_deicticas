@@ -51,7 +51,7 @@ class TranscriptFragment:
 class TranscriptContext:
 
     fragments: tuple[TranscriptFragment, ...] = ()
-    max_size: int = 3
+    max_size: int = 6
 
     def __post_init__(self) -> None:
         if self.max_size < 1:
@@ -82,9 +82,66 @@ class TranscriptContext:
     def as_text(self) -> str:
         return " ".join(f.normalized for f in self.fragments if f.normalized)
 
-    def preceding_text(self) -> str:
+    def preceding_text(
+        self,
+        *,
+        slide: SlideIdentifier | None = None,
+        now: datetime | None = None,
+        max_age_seconds: float | None = None,
+        max_fragments: int | None = None,
+        max_chars: int | None = None,
+    ) -> str:
 
-        return " ".join(f.normalized for f in self.fragments[:-1] if f.normalized)
+        candidates = [fragment for fragment in self.fragments[:-1] if fragment.normalized]
+        if slide is not None:
+            candidates = [fragment for fragment in candidates if fragment.slide == slide]
+        if now is not None and max_age_seconds is not None:
+            recent: list[TranscriptFragment] = []
+            for fragment in candidates:
+                try:
+                    age = (now - fragment.received_at).total_seconds()
+                except TypeError:
+                    continue
+                if 0.0 <= age <= max_age_seconds:
+                    recent.append(fragment)
+            candidates = recent
+        if max_fragments is not None:
+            limit = max(0, int(max_fragments))
+            candidates = candidates[-limit:] if limit else []
+
+        texts = [fragment.normalized for fragment in candidates]
+        if max_chars is None:
+            return " ".join(texts)
+        budget = max(0, int(max_chars))
+        if budget == 0:
+            return ""
+
+        selected: list[str] = []
+        used = 0
+        for text in reversed(texts):
+            separator = 1 if selected else 0
+            remaining = budget - used - separator
+            if remaining <= 0:
+                break
+            if len(text) <= remaining:
+                selected.append(text)
+                used += separator + len(text)
+                continue
+            tail = text[-remaining:].lstrip()
+            if tail:
+                selected.append(tail)
+            break
+        return " ".join(reversed(selected))
+
+    def retain_latest(
+        self, count: int, *, slide: SlideIdentifier | None = None
+    ) -> "TranscriptContext":
+
+        candidates = self.fragments
+        if slide is not None:
+            candidates = tuple(fragment for fragment in candidates if fragment.slide == slide)
+        kept = candidates[-max(0, int(count)) :] if count else ()
+        return TranscriptContext(fragments=tuple(kept), max_size=self.max_size)
 
     def __len__(self) -> int:
         return len(self.fragments)

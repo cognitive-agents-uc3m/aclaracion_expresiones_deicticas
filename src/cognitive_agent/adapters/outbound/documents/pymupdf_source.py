@@ -7,14 +7,13 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from ....domain.services.slide_layout import (
-    extract_slide_elements_from_page,
     format_elements_inventory,
     pick_element_for_point,
 )
 
 logger = logging.getLogger(__name__)
 
-DECK_ID_VERSION = "v2"
+DECK_ID_VERSION = "v3-gemini-elements"
 
 @dataclass(frozen=True, slots=True)
 class DeckInfo:
@@ -28,11 +27,21 @@ class DeckInfo:
         return self.slide_count == 0
 
 class PyMuPdfDocumentSource:
-    def __init__(self, *, render_scale: float = 1.6, cache_dir: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        render_scale: float = 1.6,
+        cache_dir: str | None = None,
+        element_detector=None,
+        processing_profile: str = "",
+    ) -> None:
         self._scale = render_scale
+        self._element_detector = element_detector
+        self._processing_profile = processing_profile.strip()
         self._cache_dir = Path(cache_dir or os.path.join(tempfile.gettempdir(), "cognitive_agent_slides"))
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._render_cache: dict[tuple[str, int], str] = {}
+        self._layout_cache: dict[tuple[str, int], dict] = {}
 
     @staticmethod
     def fingerprint(path: str | Path) -> str:
@@ -57,8 +66,11 @@ class PyMuPdfDocumentSource:
             count = document.page_count
             metadata = document.metadata or {}
             title = str(metadata.get("title") or "").strip()
+        effective_profile = ":".join(
+            part for part in (profile.strip(), self._processing_profile) if part
+        )
         return DeckInfo(
-            deck_id=self.deck_id_for(resolved, profile=profile),
+            deck_id=self.deck_id_for(resolved, profile=effective_profile),
             slide_count=count,
             path=resolved,
             title=title or Path(resolved).stem,
@@ -100,12 +112,25 @@ class PyMuPdfDocumentSource:
                 single.close()
 
     def slide_layout(self, path: str | Path, index: int) -> dict:
+        if self._element_detector is None:
+            raise RuntimeError("No hay detector visual configurado para segmentar diapositivas.")
 
         import fitz
 
-        with fitz.open(str(Path(path).resolve())) as document:
+        resolved = str(Path(path).resolve())
+        key = (resolved, int(index))
+        cached = self._layout_cache.get(key)
+        if cached is not None:
+            return cached
+
+        with fitz.open(resolved) as document:
             page = document.load_page(int(index))
-            return extract_slide_elements_from_page(page)
+            page_w = float(page.rect.width)
+            page_h = float(page.rect.height)
+        elements = self._element_detector.detect(self.slide_image_bytes(resolved, index))
+        layout = {"page_w": page_w, "page_h": page_h, "elements": elements}
+        self._layout_cache[key] = layout
+        return layout
 
     def slide_elements(self, path: str | Path, index: int) -> list[dict]:
         return list(self.slide_layout(path, index).get("elements") or [])
@@ -126,8 +151,15 @@ class PyMuPdfDocumentSource:
         deck_id: str = "",
     ) -> str:
 
+        resolved = str(Path(document_path).resolve())
+        layout = self._layout_cache.get((resolved, int(slide_index)))
+        if layout is None:
+            # Resolver el puntero nunca debe provocar una llamada nueva a
+            # Gemini. El flujo principal usa las cajas persistidas en HTML;
+            # este respaldo solo consulta detecciones ya precalculadas.
+            return ""
         try:
-            elemento = self.element_at(document_path, slide_index, x, y)
+            elemento = pick_element_for_point(list(layout.get("elements") or []), x, y)
         except Exception as exc:
             logger.debug("No se pudo resolver el elemento senalado: %s", exc)
             return ""
@@ -141,7 +173,15 @@ class PyMuPdfDocumentSource:
         bbox = elemento.get("bbox_norm")
         if bbox:
             partes.append("bbox_norm=" + ",".join(f"{float(v):.3f}" for v in bbox))
-        texto = " ".join(str(elemento.get("text") or "").split()).strip()
+        clase = str(elemento.get("class") or "").strip()
+        if clase:
+            partes.append(f"clase={clase}")
+        nivel2 = str(elemento.get("nivel2") or "").strip()
+        if nivel2:
+            partes.append(f"nivel2={nivel2}")
+        texto = " ".join(
+            str(elemento.get("text") or elemento.get("description") or "").split()
+        ).strip()
         if texto:
             partes.append(f"texto='{texto[:280]}'")
         return " ".join(partes)
@@ -154,3 +194,4 @@ class PyMuPdfDocumentSource:
             except OSError:
                 pass
         self._render_cache.clear()
+        self._layout_cache.clear()

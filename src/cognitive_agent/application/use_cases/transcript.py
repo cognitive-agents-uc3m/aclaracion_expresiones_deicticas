@@ -115,7 +115,13 @@ class ProcessTranscriptFragment:
             )
             subject = session.subject
             slide_count = session.slide_count
-            recent_context = session.context.preceding_text()
+            recent_context = session.context.preceding_text(
+                slide=fragment.slide,
+                now=now,
+                max_age_seconds=self.settings.session.context_max_age_seconds,
+                max_fragments=self.settings.session.context_max_previous_fragments,
+                max_chars=self.settings.session.context_max_chars,
+            )
 
             puntero = session.fresh_pointer(now=now)
             document_path = session.deck.source_name if session.deck else ""

@@ -113,6 +113,12 @@ class ClassroomSession:
         self.context = self.context.cleared()
         self.version += 1
 
+    def retain_context(
+        self, count: int, *, slide: SlideIdentifier | None = None
+    ) -> None:
+        self.context = self.context.retain_latest(count, slide=slide)
+        self.version += 1
+
     def remember_clarification(self, clarification_id: ClarificationId) -> None:
         self.latest_clarification_id = clarification_id
         self.version += 1
@@ -132,7 +138,7 @@ class ClassroomSession:
         *,
         subject: Subject,
         at: datetime,
-        transcript_window: int = 3,
+        transcript_window: int = 6,
         access_key: str = "",
         title: str = "",
         session_id: SessionId | None = None,

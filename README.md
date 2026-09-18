@@ -52,6 +52,29 @@ Para consultar o elegir una sesión concreta:
 
 La configuración principal se encuentra en `config/default.yaml`. Los datos generados durante la ejecución se almacenan en `.data/` y no forman parte del repositorio.
 
+## Detección de elementos en diapositivas
+
+Al cargar una presentación, PyMuPDF renderiza cada página como imagen y Gemini detecta
+las regiones semánticas de la diapositiva (títulos, texto, tablas, ecuaciones,
+gráficos, diagramas, código e imágenes). Las cajas se normalizan al intervalo
+`[0,1]` y se incorporan a la descripción HTML accesible. Los gráficos y diagramas
+reciben además una clasificación más específica basada en las categorías de
+DocFigure.
+
+Esta detección se realiza durante el preprocesado. El puntero digital consulta en
+tiempo real las cajas ya calculadas y no provoca nuevas llamadas a Gemini.
+
+Los modelos se configuran de forma independiente: `llm.detection_model` genera el
+inventario y las cajas, mientras que `llm.description_model` genera el HTML
+accesible. La configuración incluida usa `gemini-3.6-flash` para la detección y
+`gemini-2.5-flash` para el HTML.
+
+El contexto reciente de una aclaración conserva seis fragmentos, pero envía como
+máximo las cuatro frases anteriores de la diapositiva actual, con una antigüedad
+máxima de 30 segundos y un límite de 1.000 caracteres. Después de generar una
+aclaración se conservan los dos fragmentos más recientes para permitir referencias
+encadenadas.
+
 ## Ejecución con Docker
 
 Docker Compose inicia conjuntamente las interfaces del profesor y del alumno. Ambas comparten un volumen para sincronizar las sesiones y conservar los datos generados.

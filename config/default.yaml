@@ -9,7 +9,11 @@
 environment: development
 
 session:
-  transcript_window: 3
+  transcript_window: 6
+  context_max_previous_fragments: 4
+  context_max_age_seconds: 30.0
+  context_max_chars: 1000
+  context_keep_after_clarification: 2
 
 notes:
   slide_tag_idle_seconds: 2.0
@@ -41,11 +45,13 @@ deixis:
 
 llm:
   provider: gemini         # gemini | ollama | fake
+  detection_provider: gemini
   clarification_provider: gemini
   notes_provider: ollama
   deixis_provider: gemini  # usado si el modo comparativo es rules_then_llm
   clarification_model: gemini-3.6-flash
   deixis_model: gemini-2.5-flash
+  detection_model: gemini-3.6-flash
   description_model: gemini-2.5-flash
   notes_model: qwen3:4b-instruct-2507-q4_K_M
   temperature: 0.0

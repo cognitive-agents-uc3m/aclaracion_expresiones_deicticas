@@ -24,11 +24,13 @@ ENV_NAME_VAR = "COGNITIVE_AGENT_ENV"
 @dataclass(slots=True)
 class LlmConfig:
     provider: str = "gemini"
+    detection_provider: str | None = None
     clarification_provider: str | None = None
     notes_provider: str | None = None
     deixis_provider: str | None = None
     clarification_model: str = "gemini-2.5-flash"
     deixis_model: str = "gemini-2.5-flash"
+    detection_model: str = "gemini-3.6-flash"
     description_model: str = "gemini-2.5-flash"
     notes_model: str = "gemini-2.5-flash"
     temperature: float = 0.0
@@ -178,8 +180,24 @@ class Settings:
             problems.append("clarification.max_words es demasiado bajo para ser util.")
         if self.session.transcript_window < 1:
             problems.append("session.transcript_window debe ser al menos 1.")
+        if self.session.context_max_previous_fragments < 1:
+            problems.append("session.context_max_previous_fragments debe ser al menos 1.")
+        if self.session.context_max_previous_fragments >= self.session.transcript_window:
+            problems.append(
+                "session.context_max_previous_fragments debe ser menor que transcript_window."
+            )
+        if self.session.context_max_age_seconds <= 0:
+            problems.append("session.context_max_age_seconds debe ser mayor que cero.")
+        if self.session.context_max_chars < 1:
+            problems.append("session.context_max_chars debe ser al menos 1.")
+        if not 0 <= self.session.context_keep_after_clarification <= self.session.transcript_window:
+            problems.append(
+                "session.context_keep_after_clarification debe estar entre 0 y transcript_window."
+            )
         if self.llm.provider not in {"gemini", "ollama", "fake"}:
             problems.append(f"llm.provider desconocido: {self.llm.provider}")
+        if self.llm.detection_provider not in {None, "", "gemini", "ollama", "fake"}:
+            problems.append(f"llm.detection_provider desconocido: {self.llm.detection_provider}")
         if self.llm.clarification_provider not in {None, "", "gemini", "ollama", "fake"}:
             problems.append(
                 f"llm.clarification_provider desconocido: {self.llm.clarification_provider}"
